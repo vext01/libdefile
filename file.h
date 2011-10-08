@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011, Edd Barrett <vext01@gmail.com>
+ * Copyright (c) 2011, Christiano F. Haesbaert <haesbaert@haesbaert.org>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,26 +15,22 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <err.h>
+#include <sys/queue.h>
 
-#include "local.h"
-#include "defile.h"
+/*
+ * Main structure which represents a file to be checked parsed, we have one
+ * for each command line argument. 
+ */
+struct df_file {
+	TAILQ_ENTRY(df_file) entry;
+	FILE	*file;		/* File handler */
+	char	*filename;	/* File path */
+	FILE	*magic_file;	/* XXX */
+};
 
-int
-main(int argc, char **argv)
-{
-	struct df_file		df;
-
-	memset(&df, 0, sizeof(struct df_file));
-
-	if (argc != 2)
-		errx(1, "XXX: usage");
-
-	df_open(argv[1], &df);
-	df_open_magic(&df);
-
-	return (EXIT_SUCCESS);	
-}
+/*
+ * Main file program state, we have one global for it.
+ */
+struct df_state {
+	TAILQ_HEAD(, df_file) df_files; /* All our jobs */
+};
