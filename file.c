@@ -19,21 +19,64 @@
 #include <string.h>
 #include <err.h>
 
-#include "local.h"
-#include "defile.h"
+#include "file.h"
+
+void __dead	 usage(void);
+struct df_file	*df_open(const char *);
+void		 df_state_init(void);
+
+extern char *__progname;
+struct df_state *df_state;
+
+void __dead
+usage(void)
+{
+	fprintf(stderr, "usage: %s file [file...]\n", __progname);
+	exit(1);
+}
+
+void
+df_state_init(void)
+{
+	if ((df_state = calloc(1, sizeof(*df_state))) == NULL)
+		err(1, "calloc");
+	TAILQ_INIT(&df_state->df_files);
+}
+
+/* Lib entry point */
+struct df_file *
+df_open(const char *filename)
+{
+	struct df_file *df;
+
+	if ((df = calloc(1, sizeof(*df))) == NULL)
+		return (NULL);
+	df->filename = strdup(filename);
+	if (df->filename == NULL) {
+		free(df);
+		return (NULL);
+	}
+	df->file = fopen(df->filename, "r");
+	if (df->file == NULL) {
+		free(df->filename);
+		free(df);
+		return (NULL);
+	}
+	/* XXX magic ? */
+	
+	return (df);
+}
 
 int
 main(int argc, char **argv)
 {
-	struct df_file		df;
+	struct df_file	*df;
 
-	memset(&df, 0, sizeof(struct df_file));
+	if (argc < 2)
+		usage();
 
-	if (argc != 2)
-		errx(1, "XXX: usage");
-
-	df_open(argv[1], &df);
-	df_open_magic(&df);
-
+	df_state_init();
+	
 	return (EXIT_SUCCESS);	
 }
+
