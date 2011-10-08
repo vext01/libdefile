@@ -97,8 +97,6 @@ err:
 
 /*
  * Search for matches in magic
- *
- * I guess this will return a textual representation? XXX
  */
 int
 df_check_match_magic(struct df_file *df)
@@ -114,6 +112,9 @@ df_check_match_magic(struct df_file *df)
 
 }
 
+/*
+ * Search for matches in filesystem goo.
+ */
 void
 df_check_match_fs(struct df_file *df)
 {
