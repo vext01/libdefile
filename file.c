@@ -15,6 +15,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <sys/stat.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,9 +27,11 @@
 void __dead	 usage(void);
 struct df_file	*df_open(const char *);
 void		 df_state_init(int, char **);
-char		 df_match(void);
-void		 df_match_all_files(void);
-char		*df_match_file(struct df_file *df);
+int		 df_check_match(struct df_file *);
+int		 df_check_match_fs(struct df_file *);
+int		 df_check_match_magic(struct df_file *);
+struct df_match *df_match_add(struct df_file *, enum match_class,
+    const char *);
 
 extern char	*__progname;
 struct df_state df_state;
@@ -44,6 +48,7 @@ usage(void)
  *
  * Opens all files and pushes into a TAILQ
  * Also opens magic
+ * Lib
  */
 void
 df_state_init(int argc, char **argv)
@@ -53,17 +58,18 @@ df_state_init(int argc, char **argv)
 
 	TAILQ_INIT(&df_state.df_files);
 	for (i = 0; i < argc; i++) {
+		/* XXX we can't bail out, fs may match  */
 		if ((df = df_open(argv[i])) == NULL)
 			err(1, "df_open: %s", argv[i]);
 		TAILQ_INSERT_TAIL(&df_state.df_files, df, entry);
 	}
-
+	/* XXX we can't bail out, other classes may match */
 	df_state.magic_file = fopen(MAGIC, "r");
 	if (df_state.magic_file == NULL)
 		err(1, "df_open: %s", MAGIC);
 }
 
-/* Lib entry point */
+/* Lib */
 struct df_file *
 df_open(const char *filename)
 {
@@ -80,6 +86,8 @@ df_open(const char *filename)
 	if (df->file == NULL)
 		goto err;
 
+	TAILQ_INIT(&df->df_matches);
+
 	/* success */
 	return (df);
 err:
@@ -95,44 +103,88 @@ err:
 
 /*
  * Search for matches in magic
- *
- * I guess this will return a textual representation? XXX
  */
-char *
-df_match_file(struct df_file *df)
+int
+df_check_match_magic(struct df_file *df)
 {
-	char		*ret = "XXX";
+	int matches = 0;
 
 	if (!df_state.magic_file)
-		return (NULL);
+		return (0);
 
 	rewind(df_state.magic_file);
 
-	return (ret);
+	return (matches);
 
 }
 
 /*
- * Try to match every file that was passed on cmd line
+ * Search for matches in filesystem goo.
  */
-void
-df_match_all_files()
+int
+df_check_match_fs(struct df_file *df)
 {
-	struct df_file		*f;
-	char			*ident;
+	struct stat	sb;
 
-	TAILQ_FOREACH(f, &df_state.df_files, entry) {
-		ident = df_match_file(f);
-		if (!ident)
-			printf("%s: failed to identify\n", f->filename);
-		else
-			printf("%s: %s\n", f->filename, ident);
+	if (stat(df->filename, &sb) == -1) {
+		warn("stat: %s", df->filename);
+		return (-1);
 	}
+	if (sb.st_mode & S_ISUID)
+		df_match_add(df, MC_FS, "setuid");
+	if (sb.st_mode & S_ISGID)
+		df_match_add(df, MC_FS, "setgid");
+	if (sb.st_mode & S_ISVTX)
+		df_match_add(df, MC_FS, "sticky");
+	if (sb.st_mode & S_IFMT)
+		df_match_add(df, MC_FS, "directory");
+
+	return (0);
+}
+
+/*
+ * Builds and adds a match at the end of df->df_matches
+ */
+struct df_match *
+df_match_add(struct df_file *df, enum match_class mc, const char *desc)
+{
+	struct df_match *dm;
+
+	if ((dm = calloc(1, sizeof(*dm))) == NULL)
+		err(1, "calloc"); /* XXX */
+	dm->class = mc;
+	dm->desc  = desc;
+	TAILQ_INSERT_TAIL(&df->df_matches, dm, entry);
+
+	return (dm);
+}
+
+/*
+ * Check
+ */
+int
+df_check_match(struct df_file *df)
+{
+	struct df_match *dm;
+
+	(void)df_check_match_fs(df);
+	(void)df_check_match_magic(df);
+
+	if (!TAILQ_EMPTY(&df->df_matches))
+		printf("%s: ", df->filename);
+	TAILQ_FOREACH(dm, &df->df_matches, entry)
+		printf("%s ", dm->desc);
+	if (!TAILQ_EMPTY(&df->df_matches))
+		printf("\n");
+
+	return (0);
 }
 
 int
 main(int argc, char **argv)
 {
+	struct df_file	*df;
+
 	if (argc < 2)
 		usage();
 
@@ -140,8 +192,8 @@ main(int argc, char **argv)
 	argv++;
 	df_state_init(argc, argv);
 
-	df_match_all_files();
+	TAILQ_FOREACH(df, &df_state.df_files, entry)
+		df_check_match(df);
 
-	return (EXIT_SUCCESS);	
+	return (EXIT_SUCCESS);
 }
-
