@@ -129,7 +129,6 @@ df_check_match_fs(struct df_file *df)
 		warn("stat: %s", df->filename);
 		return (-1);
 	}
-
 	if (sb.st_mode & S_ISUID) {
 		df_match_add(df, MC_FS, "setuid");
 		matches++;
@@ -141,6 +140,10 @@ df_check_match_fs(struct df_file *df)
 	if (sb.st_mode & S_ISVTX) {
 		matches++;
 		df_match_add(df, MC_FS, "sticky");
+	}
+	if (sb.st_mode & S_IFMT) {
+		matches++;
+		df_match_add(df, MC_FS, "directory");
 	}
 
 	return (matches);
