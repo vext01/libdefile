@@ -29,6 +29,8 @@ struct df_file	*df_open(const char *);
 void		 df_state_init(int, char **);
 void		 df_check_match_fs(struct df_file *);
 int		 df_check_match_magic(struct df_file *);
+struct df_match *df_match_add(struct df_file *, enum match_class,
+    const char *);
 
 extern char	*__progname;
 struct df_state df_state;
@@ -81,7 +83,9 @@ df_open(const char *filename)
 	df->file = fopen(df->filename, "r");
 	if (df->file == NULL)
 		goto err;
-
+	
+	TAILQ_INIT(&df->df_matches);
+	    
 	/* success */
 	return (df);
 err:
@@ -124,18 +128,35 @@ df_check_match_fs(struct df_file *df)
 		err(1, "stat: %s", df->filename);
 
 	if (sb.st_mode & S_ISUID)
-		printf("setuid ");
+		df_match_add(df, MC_FS, "setuid");
 	if (sb.st_mode & S_ISGID)
-		printf("setgid ");
+		df_match_add(df, MC_FS, "setgid");
 	if (sb.st_mode & S_ISVTX)
-		printf("sticky ");
+		df_match_add(df, MC_FS, "sticky");
+}
+
+/*
+ * Builds and adds a match at the end of df->df_matches
+ */
+struct df_match *
+df_match_add(struct df_file *df, enum match_class mc, const char *desc)
+{
+	struct df_match *dm;
+
+	if ((dm = calloc(1, sizeof(*dm))) == NULL)
+		err(1, "calloc");
+	dm->class = mc;
+	dm->desc  = desc;
+	TAILQ_INSERT_TAIL(&df->df_matches, dm, entry);
+	
+	return (dm);
 }
 
 int
 main(int argc, char **argv)
 {
 	struct df_file *df;
-	
+
 	if (argc < 2)
 		usage();
 
