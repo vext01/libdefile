@@ -27,7 +27,8 @@
 void __dead	 usage(void);
 struct df_file	*df_open(const char *);
 void		 df_state_init(int, char **);
-void		 df_check_match_fs(struct df_file *);
+int		 df_check_match(struct df_file *);
+int		 df_check_match_fs(struct df_file *);
 int		 df_check_match_magic(struct df_file *);
 struct df_match *df_match_add(struct df_file *, enum match_class,
     const char *);
@@ -67,7 +68,6 @@ df_state_init(int argc, char **argv)
 		err(1, "df_open: %s", MAGIC);
 }
 
-/* Lib entry point */
 struct df_file *
 df_open(const char *filename)
 {
@@ -83,9 +83,9 @@ df_open(const char *filename)
 	df->file = fopen(df->filename, "r");
 	if (df->file == NULL)
 		goto err;
-	
+
 	TAILQ_INIT(&df->df_matches);
-	    
+
 	/* success */
 	return (df);
 err:
@@ -105,34 +105,45 @@ err:
 int
 df_check_match_magic(struct df_file *df)
 {
-	int ret = 0;
+	int matches = 0;
 
 	if (!df_state.magic_file)
 		return (0);
 
 	rewind(df_state.magic_file);
 
-	return (ret);
+	return (matches);
 
 }
 
 /*
  * Search for matches in filesystem goo.
  */
-void
+int
 df_check_match_fs(struct df_file *df)
 {
-	struct stat sb;
+	struct stat	sb;
+	int		matches = 0;
 
-	if (stat(df->filename, &sb) == -1)
-		err(1, "stat: %s", df->filename);
+	if (stat(df->filename, &sb) == -1) {
+		warn("stat: %s", df->filename);
+		return (-1);
+	}
 
-	if (sb.st_mode & S_ISUID)
+	if (sb.st_mode & S_ISUID) {
 		df_match_add(df, MC_FS, "setuid");
-	if (sb.st_mode & S_ISGID)
+		matches++;
+	}
+	if (sb.st_mode & S_ISGID) {
 		df_match_add(df, MC_FS, "setgid");
-	if (sb.st_mode & S_ISVTX)
+		matches++;
+	}
+	if (sb.st_mode & S_ISVTX) {
+		matches++;
 		df_match_add(df, MC_FS, "sticky");
+	}
+
+	return (matches);
 }
 
 /*
@@ -148,14 +159,40 @@ df_match_add(struct df_file *df, enum match_class mc, const char *desc)
 	dm->class = mc;
 	dm->desc  = desc;
 	TAILQ_INSERT_TAIL(&df->df_matches, dm, entry);
-	
+
 	return (dm);
+}
+
+/*
+ * Check
+ */
+int
+df_check_match(struct df_file *df)
+{
+	struct df_match *dm;
+	int		 r, matches = 0;
+
+	r = df_check_match_fs(df);
+	if (r > 0)
+		matches += r;
+	r = df_check_match_magic(df);
+	if (r > 0)
+		matches += r;
+
+	if (matches)
+		printf("%s: ", df->filename);
+	TAILQ_FOREACH(dm, &df->df_matches, entry)
+		printf("%s ", dm->desc);
+	if (matches)
+		printf("\n");
+
+	return (matches);
 }
 
 int
 main(int argc, char **argv)
 {
-	struct df_file *df;
+	struct df_file	*df;
 
 	if (argc < 2)
 		usage();
@@ -164,10 +201,8 @@ main(int argc, char **argv)
 	argv++;
 	df_state_init(argc, argv);
 
-	TAILQ_FOREACH(df, &df_state.df_files, entry) {
-		df_check_match_fs(df);
-		df_check_match_magic(df);
-	}
+	TAILQ_FOREACH(df, &df_state.df_files, entry)
+		df_check_match(df);
 
 	return (EXIT_SUCCESS);
 }
