@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011, Edd Barrett <vext01@gmail.com>
+ * Copyright (c) 2011, Christiano F. Haesbaert <haesbaert@haesbaert.org>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -23,10 +24,10 @@
 
 void __dead	 usage(void);
 struct df_file	*df_open(const char *);
-void		 df_state_init(void);
+void		 df_state_init(int, char **);
 
-extern char *__progname;
-struct df_state *df_state;
+extern char	*__progname;
+struct df_state df_state;
 
 void __dead
 usage(void)
@@ -35,12 +36,20 @@ usage(void)
 	exit(1);
 }
 
+/* Initializes the world */
 void
-df_state_init(void)
+df_state_init(int argc, char **argv)
 {
-	if ((df_state = calloc(1, sizeof(*df_state))) == NULL)
-		err(1, "calloc");
-	TAILQ_INIT(&df_state->df_files);
+	struct df_file *df;
+	int i;
+	
+	TAILQ_INIT(&df_state.df_files);
+	for (i = 0; i < argc; i++) {
+		if ((df = df_open(argv[i])) == NULL)
+			err(1, "df_open");
+		TAILQ_INSERT_TAIL(&df_state.df_files, df, entry);
+	}
+	
 }
 
 /* Lib entry point */
@@ -70,12 +79,12 @@ df_open(const char *filename)
 int
 main(int argc, char **argv)
 {
-	struct df_file	*df;
-
 	if (argc < 2)
 		usage();
 
-	df_state_init();
+	argc--;
+	argv++;
+	df_state_init(argc, argv);
 	
 	return (EXIT_SUCCESS);	
 }

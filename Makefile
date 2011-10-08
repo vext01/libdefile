@@ -6,7 +6,7 @@ MAGICGRP=       bin
 MAGICMODE=      444
 
 PROG=           file
-SRCS=           file.c libdefile.c
+SRCS=           file.c
 CFLAGS+=        -DMAGIC='"$(MAGIC)"' -g
 CFLAGS+=        -Wall -Wstrict-prototypes -Wmissing-prototypes
 CFLAGS+=        -Wmissing-declarations

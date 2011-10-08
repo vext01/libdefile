@@ -22,6 +22,7 @@
  * for each command line argument. 
  */
 struct df_file {
+	TAILQ_ENTRY(df_file) entry;
 	FILE	*file;		/* File handler */
 	char	*filename;	/* File path */
 	FILE	*magic_file;	/* XXX */
