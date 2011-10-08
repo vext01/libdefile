@@ -25,6 +25,7 @@
 void __dead	 usage(void);
 struct df_file	*df_open(const char *);
 void		 df_state_init(int, char **);
+void		 df_match(void);
 
 extern char	*__progname;
 struct df_state df_state;
@@ -36,20 +37,28 @@ usage(void)
 	exit(1);
 }
 
-/* Initializes the world */
+/*
+ * Initializes the world
+ *
+ * Opens all files and pushes into a TAILQ
+ * Also opens magic
+ */
 void
 df_state_init(int argc, char **argv)
 {
-	struct df_file *df;
-	int i;
-	
+	struct df_file	*df;
+	int		 i;
+
 	TAILQ_INIT(&df_state.df_files);
 	for (i = 0; i < argc; i++) {
 		if ((df = df_open(argv[i])) == NULL)
-			err(1, "df_open");
+			err(1, "df_open: %s", argv[i]);
 		TAILQ_INSERT_TAIL(&df_state.df_files, df, entry);
 	}
-	
+
+	df_state.magic_file = fopen(MAGIC, "r");
+	if (df_state.magic_file == NULL)
+		err(1, "df_open: %s", MAGIC);
 }
 
 /* Lib entry point */
@@ -59,21 +68,34 @@ df_open(const char *filename)
 	struct df_file *df;
 
 	if ((df = calloc(1, sizeof(*df))) == NULL)
-		return (NULL);
+		goto err;
+
 	df->filename = strdup(filename);
-	if (df->filename == NULL) {
-		free(df);
-		return (NULL);
-	}
+	if (df->filename == NULL)
+		goto err;
+
 	df->file = fopen(df->filename, "r");
-	if (df->file == NULL) {
-		free(df->filename);
-		free(df);
-		return (NULL);
-	}
-	/* XXX magic ? */
-	
+	if (df->file == NULL)
+		goto err;
+
+	/* success */
 	return (df);
+err:
+	if (df->filename)
+		free(df->filename);
+	if (df->file)
+		fclose(df->file);
+	if (df)
+		free(df);
+
+	return (NULL);
+}
+
+/* search for matches in magic */
+void
+df_match(void)
+{
+
 }
 
 int

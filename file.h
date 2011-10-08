@@ -25,7 +25,6 @@ struct df_file {
 	TAILQ_ENTRY(df_file) entry;
 	FILE	*file;		/* File handler */
 	char	*filename;	/* File path */
-	FILE	*magic_file;	/* XXX */
 };
 
 /*
@@ -33,4 +32,5 @@ struct df_file {
  */
 struct df_state {
 	TAILQ_HEAD(, df_file) df_files; /* All our jobs */
+	FILE	*magic_file;	/* Magic file */
 };
