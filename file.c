@@ -27,8 +27,8 @@
 void __dead	 usage(void);
 struct df_file	*df_open(const char *);
 void		 df_state_init(int, char **);
-void		 df_check_fs(struct df_file *);
-
+void		 df_check_match_fs(struct df_file *);
+int		 df_check_match_magic(struct df_file *);
 
 extern char	*__progname;
 struct df_state df_state;
@@ -40,19 +40,29 @@ usage(void)
 	exit(1);
 }
 
-/* Initializes the world */
+/*
+ * Initializes the world
+ *
+ * Opens all files and pushes into a TAILQ
+ * Also opens magic
+ */
 void
 df_state_init(int argc, char **argv)
 {
-	struct df_file *df;
-	int i;
+	struct df_file	*df;
+	int		 i;
 
 	TAILQ_INIT(&df_state.df_files);
 	for (i = 0; i < argc; i++) {
+		/* XXX we can't bail out, fs may match  */
 		if ((df = df_open(argv[i])) == NULL)
-			err(1, "df_open");
+			err(1, "df_open: %s", argv[i]);
 		TAILQ_INSERT_TAIL(&df_state.df_files, df, entry);
 	}
+	/* XXX we can't bail out, other classes may match */
+	df_state.magic_file = fopen(MAGIC, "r");
+	if (df_state.magic_file == NULL)
+		err(1, "df_open: %s", MAGIC);
 }
 
 /* Lib entry point */
@@ -62,25 +72,50 @@ df_open(const char *filename)
 	struct df_file *df;
 
 	if ((df = calloc(1, sizeof(*df))) == NULL)
-		return (NULL);
-	df->filename = strdup(filename);
-	if (df->filename == NULL) {
-		free(df);
-		return (NULL);
-	}
-	df->file = fopen(df->filename, "r");
-	if (df->file == NULL) {
-		free(df->filename);
-		free(df);
-		return (NULL);
-	}
-	/* XXX magic ? */
+		goto err;
 
+	df->filename = strdup(filename);
+	if (df->filename == NULL)
+		goto err;
+
+	df->file = fopen(df->filename, "r");
+	if (df->file == NULL)
+		goto err;
+
+	/* success */
 	return (df);
+err:
+	if (df->filename)
+		free(df->filename);
+	if (df->file)
+		fclose(df->file);
+	if (df)
+		free(df);
+
+	return (NULL);
+}
+
+/*
+ * Search for matches in magic
+ *
+ * I guess this will return a textual representation? XXX
+ */
+int
+df_check_match_magic(struct df_file *df)
+{
+	int ret = 0;
+
+	if (!df_state.magic_file)
+		return (0);
+
+	rewind(df_state.magic_file);
+
+	return (ret);
+
 }
 
 void
-df_check_fs(struct df_file *df)
+df_check_match_fs(struct df_file *df)
 {
 	struct stat sb;
 
@@ -108,9 +143,8 @@ main(int argc, char **argv)
 	df_state_init(argc, argv);
 
 	TAILQ_FOREACH(df, &df_state.df_files, entry) {
-		df_check_fs(df);
-		/* df_check_magic(df); */
-		/* df_check_mime(df); */
+		df_check_match_fs(df);
+		df_check_match_magic(df);
 	}
 
 	return (EXIT_SUCCESS);

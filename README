@@ -1,0 +1,2 @@
+WIP replacement for OpenBSD file(1). Eventually to become a shared library
+mimicking libmagic.
