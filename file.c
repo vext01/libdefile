@@ -48,6 +48,7 @@ usage(void)
  *
  * Opens all files and pushes into a TAILQ
  * Also opens magic
+ * Lib
  */
 void
 df_state_init(int argc, char **argv)
@@ -68,6 +69,7 @@ df_state_init(int argc, char **argv)
 		err(1, "df_open: %s", MAGIC);
 }
 
+/* Lib */
 struct df_file *
 df_open(const char *filename)
 {
@@ -123,30 +125,22 @@ int
 df_check_match_fs(struct df_file *df)
 {
 	struct stat	sb;
-	int		matches = 0;
 
 	if (stat(df->filename, &sb) == -1) {
 		warn("stat: %s", df->filename);
 		return (-1);
 	}
-	if (sb.st_mode & S_ISUID) {
+	if (sb.st_mode & S_ISUID)
 		df_match_add(df, MC_FS, "setuid");
-		matches++;
-	}
-	if (sb.st_mode & S_ISGID) {
-		df_match_add(df, MC_FS, "setgid");
-		matches++;
-	}
-	if (sb.st_mode & S_ISVTX) {
-		matches++;
-		df_match_add(df, MC_FS, "sticky");
-	}
-	if (sb.st_mode & S_IFMT) {
-		matches++;
-		df_match_add(df, MC_FS, "directory");
-	}
 
-	return (matches);
+	if (sb.st_mode & S_ISGID)
+		df_match_add(df, MC_FS, "setgid");
+	if (sb.st_mode & S_ISVTX)
+		df_match_add(df, MC_FS, "sticky");
+	if (sb.st_mode & S_IFMT)
+		df_match_add(df, MC_FS, "directory");
+
+	return (0);
 }
 
 /*
@@ -158,7 +152,7 @@ df_match_add(struct df_file *df, enum match_class mc, const char *desc)
 	struct df_match *dm;
 
 	if ((dm = calloc(1, sizeof(*dm))) == NULL)
-		err(1, "calloc");
+		err(1, "calloc"); /* XXX */
 	dm->class = mc;
 	dm->desc  = desc;
 	TAILQ_INSERT_TAIL(&df->df_matches, dm, entry);
@@ -173,23 +167,18 @@ int
 df_check_match(struct df_file *df)
 {
 	struct df_match *dm;
-	int		 r, matches = 0;
 
-	r = df_check_match_fs(df);
-	if (r > 0)
-		matches += r;
-	r = df_check_match_magic(df);
-	if (r > 0)
-		matches += r;
+	(void)df_check_match_fs(df);
+	(void)df_check_match_magic(df);
 
-	if (matches)
+	if (!TAILQ_EMPTY(&df->df_matches))
 		printf("%s: ", df->filename);
 	TAILQ_FOREACH(dm, &df->df_matches, entry)
 		printf("%s ", dm->desc);
-	if (matches)
+	if (!TAILQ_EMPTY(&df->df_matches))
 		printf("\n");
 
-	return (matches);
+	return (0);
 }
 
 int
