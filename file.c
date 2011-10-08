@@ -136,7 +136,7 @@ df_check_match_fs(struct df_file *df)
 		df_match_add(df, MC_FS, "setgid");
 	if (sb.st_mode & S_ISVTX)
 		df_match_add(df, MC_FS, "sticky");
-	if (sb.st_mode & S_IFMT)
+	if (sb.st_mode & S_IFDIR)
 		df_match_add(df, MC_FS, "directory");
 
 	return (0);
