@@ -132,7 +132,6 @@ df_check_match_fs(struct df_file *df)
 	}
 	if (sb.st_mode & S_ISUID)
 		df_match_add(df, MC_FS, "setuid");
-
 	if (sb.st_mode & S_ISGID)
 		df_match_add(df, MC_FS, "setgid");
 	if (sb.st_mode & S_ISVTX)
