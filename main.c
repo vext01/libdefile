@@ -15,6 +15,9 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <err.h>
 
 #include "local.h"
 #include "defile.h"
@@ -22,6 +25,15 @@
 int
 main(int argc, char **argv)
 {
+	struct df_file		df;
+
+	memset(&df, 0, sizeof(struct df_file));
+
 	if (argc != 2)
-		err
+		errx(1, "XXX: usage");
+
+	df_open(argv[1], &df);
+	df_open_magic(&df);
+
+	return (EXIT_SUCCESS);	
 }

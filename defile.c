@@ -17,10 +17,26 @@
 #include <err.h>
 
 #include "local.h"
+#include "defile.h"
 
-int
-df_open(char *file)
+/*
+ * open file to identify
+ */
+void
+df_open(char *path, struct df_file *df)
 {
-	if (argc != 2)
-		err
+	df->file = fopen(path, "r");
+	if (df->file == NULL)
+		err(1, "failed to open '%s'", path);
+}
+
+/*
+ * open magic file (usually /etc/magic
+ */
+void
+df_open_magic(struct df_file *df)
+{
+	df->magic_file = fopen(MAGIC, "r");
+	if (df->magic_file == NULL)
+		err(1, "failed to open magic '%s'", MAGIC);
 }

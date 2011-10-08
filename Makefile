@@ -7,7 +7,7 @@ MAGICMODE=      444
 
 PROG=           file
 SRCS=		main.c defile.c
-CFLAGS+=        -DMAGIC='"$(MAGIC)"'
+CFLAGS+=        -DMAGIC='"$(MAGIC)"' -g
 #MAN=            file.1 magic.5
 
 #CLEANFILES+=    magic post-magic

@@ -17,6 +17,19 @@
 #ifndef DEFILE_H_
 #define DEFILE_H_
 
-int			df_open(char *);
+#include <stdio.h>
+
+/* error/success codes */
+#define DF_OK		0
+#define DF_FAIL		1
+
+struct df_file {
+	FILE	*file;
+	char	*filename;
+	FILE	*magic_file;
+};
+
+void			df_open(char *, struct df_file *);
+void			df_open_magic(struct df_file *);
 
 #endif
