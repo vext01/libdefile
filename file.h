@@ -23,6 +23,7 @@
  */
 struct df_file {
 	TAILQ_ENTRY(df_file) entry;
+	TAILQ_HEAD(, df_match) df_matches;
 	FILE	*file;		/* File handler */
 	char	*filename;	/* File path */
 };
@@ -33,4 +34,22 @@ struct df_file {
 struct df_state {
 	TAILQ_HEAD(, df_file) df_files; /* All our jobs */
 	FILE	*magic_file;	/* Magic file */
+};
+
+/*
+ * Represents a match in a df_file, a file may have multiple matches.
+ */
+
+enum match_class {
+	MC_FS,
+	MC_MAGIC,
+	MC_MIME,
+	MC_LANG
+};
+
+struct df_match {
+	TAILQ_ENTRY(df_match) entry;
+	const char	*desc;	/* string represtation */
+	enum match_class class;	/* df_match_class */
+	/* XXX maybe instance in future ? */
 };
