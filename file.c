@@ -25,7 +25,9 @@
 void __dead	 usage(void);
 struct df_file	*df_open(const char *);
 void		 df_state_init(int, char **);
-void		 df_match(void);
+char		 df_match(void);
+void		 df_match_all_files(void);
+char		*df_match_file(struct df_file *df);
 
 extern char	*__progname;
 struct df_state df_state;
@@ -91,11 +93,41 @@ err:
 	return (NULL);
 }
 
-/* search for matches in magic */
-void
-df_match(void)
+/*
+ * Search for matches in magic
+ *
+ * I guess this will return a textual representation? XXX
+ */
+char *
+df_match_file(struct df_file *df)
 {
+	char		*ret = "XXX";
 
+	if (!df_state.magic_file)
+		return (NULL);
+
+	rewind(df_state.magic_file);
+
+	return (ret);
+
+}
+
+/*
+ * Try to match every file that was passed on cmd line
+ */
+void
+df_match_all_files()
+{
+	struct df_file		*f;
+	char			*ident;
+
+	TAILQ_FOREACH(f, &df_state.df_files, entry) {
+		ident = df_match_file(f);
+		if (!ident)
+			printf("%s: failed to identify\n", f->filename);
+		else
+			printf("%s: %s\n", f->filename, ident);
+	}
 }
 
 int
@@ -107,7 +139,9 @@ main(int argc, char **argv)
 	argc--;
 	argv++;
 	df_state_init(argc, argv);
-	
+
+	df_match_all_files();
+
 	return (EXIT_SUCCESS);	
 }
 
