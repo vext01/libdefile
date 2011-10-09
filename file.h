@@ -89,7 +89,7 @@ enum df_magic_field_type {
  * Represents a field if a potential match from the magic database
  */
 struct df_magic_match_field {
-	uint64_t			offset;
+	u_int64_t			offset;
 	enum df_magic_field_type	type;
 };
 
