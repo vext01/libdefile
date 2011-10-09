@@ -36,7 +36,6 @@ struct df_state {
 	FILE	*magic_file;	/* Magic file */
 };
 
-
 /*
  * A magic field type.
  * This corresponds to the first field in the magic db file.
@@ -87,10 +86,9 @@ enum df_magic_field_type {
  * Represents a field if a potential match from the magic database
  */
 struct df_magic_match_field {
-	uint64_t			offset;
+	u_int64_t			offset;
 	enum df_magic_field_type	type;
 };
-
 
 /*
  * Represents a potential match from the magic database
