@@ -18,10 +18,14 @@
 #include <sys/param.h>
 #include <sys/stat.h>
 
+#include <fcntl.h>
 #include <err.h>
+#include <errno.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "file.h"
 
@@ -32,7 +36,7 @@ int			 df_check_match(struct df_file *);
 int			 df_check_match_fs(struct df_file *);
 int			 df_check_match_magic(struct df_file *);
 struct df_match		*df_match_add(struct df_file *, enum match_class,
-    const char *);
+    const char *, ...);
 
 /* prototype magic matching */
 struct df_magic_match		*df_next_magic_candidate(void);
@@ -44,7 +48,7 @@ struct df_state df_state;
 void __dead
 usage(void)
 {
-	fprintf(stderr, "usage: %s file [file...]\n", __progname);
+	fprintf(stderr, "usage: [-Ls] %s file [file...]\n", __progname);
 	exit(1);
 }
 
@@ -81,9 +85,11 @@ df_open(const char *filename)
 	if ((df = calloc(1, sizeof(*df))) == NULL)
 		goto err;
 
-	df->filename = strdup(filename);
-	if (df->filename == NULL)
+	if (strlcpy(df->filename, filename, sizeof(df->filename)) >=
+	    sizeof(df->filename)) {
+		errno = ENAMETOOLONG;
 		goto err;
+	}
 
 	df->file = fopen(df->filename, "r");
 	if (df->file == NULL)
@@ -94,8 +100,6 @@ df_open(const char *filename)
 	/* success */
 	return (df);
 err:
-	if (df->filename)
-		free(df->filename);
 	if (df->file)
 		fclose(df->file);
 	if (df)
@@ -184,12 +188,33 @@ df_check_match_magic(struct df_file *df)
 int
 df_check_match_fs(struct df_file *df)
 {
-	struct stat	sb;
-	char		buf[MAXPATHLEN];
+	struct stat	 sb;
+	char		 buf[MAXPATHLEN];
+	int		 n;
+	struct df_file	*df2;
 
-	if (stat(df->filename, &sb) == -1) {
+	if (lstat(df->filename, &sb) == -1) {
 		warn("stat: %s", df->filename);
 		return (-1);
+	}
+	if (S_ISLNK(sb.st_mode)) {
+		bzero(buf, sizeof(buf));
+		n = readlink(df->filename, buf, sizeof(buf));
+		if (n == -1) {
+			warn("unreadable symlink `%s'", df->filename);
+			return (-1);
+		}
+		if (df_state.check_flags & CHK_FOLLOWSYMLINKS) {
+			if ((df2 = df_open(buf)) == NULL) {
+				warn("can't follow symlink `%s'", buf);
+				return (-1);
+			}
+			/* Our next df will be the followed symlink */
+			TAILQ_INSERT_AFTER(&df_state.df_files, df, df2, entry);
+			return (0);
+		}
+		df_match_add(df, MC_FS, "symbolic link to `%s'", buf);
+		return (0);
 	}
 	if (sb.st_mode & S_ISUID)
 		df_match_add(df, MC_FS, "setuid");
@@ -214,14 +239,6 @@ df_check_match_fs(struct df_file *df)
 		return (0);
 	}
 	/* TODO DOOR ? */
-	if (S_ISLNK(sb.st_mode)) {
-		if (readlink(df->filename, buf, sizeof(buf)) == -1) {
-			warn("unreadable symlink `%s'");
-			return (-1);
-		}
-		buf[sizeof(buf) - 1] = 0; /* readlink does not terminate */
-		/* TODO */
-	}
 	if (S_ISSOCK(sb.st_mode)) {
 		df_match_add(df, MC_FS, "socket");
 		return (0);
@@ -237,14 +254,19 @@ ordinary:
  * Builds and adds a match at the end of df->df_matches
  */
 struct df_match *
-df_match_add(struct df_file *df, enum match_class mc, const char *desc)
+df_match_add(struct df_file *df, enum match_class mc, const char *desc, ...)
 {
 	struct df_match *dm;
+	va_list		 ap;
 
 	if ((dm = calloc(1, sizeof(*dm))) == NULL)
 		err(1, "calloc"); /* XXX */
 	dm->class = mc;
-	dm->desc  = desc;
+	va_start(ap, desc);
+	if (vsnprintf(dm->desc, sizeof(dm->desc), desc, ap) >=
+	    (int)sizeof(dm->desc))
+		err(1, "vsnprintf");
+	va_end(ap);
 	TAILQ_INSERT_TAIL(&df->df_matches, dm, entry);
 
 	return (dm);
@@ -277,10 +299,13 @@ main(int argc, char **argv)
 	struct df_file	*df;
 	int		 ch;
 
-	while ((ch = getopt(argc, argv, "s")) != -1) {
+	while ((ch = getopt(argc, argv, "Ls")) != -1) {
 		switch (ch) {
 		case 's':	/* Treat file devices as ordinary files */
 			df_state.check_flags |= CHK_NOSPECIAL;
+			break;
+		case 'L':
+			df_state.check_flags |= CHK_FOLLOWSYMLINKS;
 			break;
 		default:
 			usage();
@@ -293,7 +318,6 @@ main(int argc, char **argv)
 		usage();
 
 	df_state_init_files(argc, argv);
-
 	TAILQ_FOREACH(df, &df_state.df_files, entry)
 		df_check_match(df);
 

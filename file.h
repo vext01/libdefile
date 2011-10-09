@@ -15,6 +15,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <sys/param.h>
 #include <sys/queue.h>
 
 /*
@@ -24,8 +25,8 @@
 struct df_file {
 	TAILQ_ENTRY(df_file) entry;
 	TAILQ_HEAD(, df_match) df_matches;
-	FILE	*file;		/* File handler */
-	char	*filename;	/* File path */
+	FILE	*file;			/* File handler */
+	char	 filename[MAXPATHLEN];	/* File path */
 };
 
 /*
@@ -35,7 +36,8 @@ struct df_state {
 	TAILQ_HEAD(, df_file) df_files; /* All our jobs */
 	FILE	*magic_file;	/* Magic file */
 	u_int	 check_flags;	/* Flags regarding file checking */
-#define CHK_NOSPECIAL 0x01
+#define CHK_NOSPECIAL		0x01
+#define CHK_FOLLOWSYMLINKS	0x02
 };
 
 
@@ -113,7 +115,7 @@ enum match_class {
 
 struct df_match {
 	TAILQ_ENTRY(df_match) entry;
-	const char	*desc;	/* string represtation */
-	enum match_class class;	/* df_match_class */
+	char		 desc[256]; 	/* string represtation */
+	enum match_class class;		/* df_match_class */
 	/* XXX maybe instance in future ? */
 };
