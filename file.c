@@ -35,7 +35,8 @@ struct df_match		*df_match_add(struct df_file *, enum match_class,
 
 /* prototype magic matching */
 struct df_magic_match		*df_next_magic_candidate(void);
-struct df_magic_match_field	*df_parse_magic_line(char *line);
+struct df_magic_match_field	*df_parse_magic_line(char *line,
+    struct df_magic_match_field *last_dm);
 
 extern char	*__progname;
 struct df_state df_state;
@@ -105,11 +106,47 @@ err:
 	return (NULL);
 }
 
+#define DF_NUM_MAGIC_FIELDS			4
+#define DF_MIME_TOKEN				"!:mime"
+
+/*
+ * Jam a test into a struct
+ */
 struct df_magic_match_field *
-df_parse_magic_line(char *line)
+df_parse_magic_line(char *line, struct df_magic_match_field *last_dmf)
 {
-	/* strsep, put tokens into df_magic_match_field struct XXX */
-	return (NULL);
+	char			*tokens[DF_NUM_MAGIC_FIELDS] = {0, 0, 0, 0};
+	char			*nxt = line;
+	int			 n_tok = 0;
+	struct df_magic_match_field	*dmf;
+
+	while ((n_tok < DF_NUM_MAGIC_FIELDS) && (nxt != NULL))
+		tokens[n_tok++] = strsep(&nxt, " \t");
+
+	if (n_tok < DF_NUM_MAGIC_FIELDS - 2) /* last 2 fields optional */
+		errx(1, "%s: short field count at line %d", MAGIC,
+		    df_state.magic_line);
+
+	/*
+	 * if it was a mime line, we don't make a new record, but append
+	 * mime type info to the last field we found. In this case we return
+	 * the same pointer as before to inidicate this was teh case.
+	 */
+	if (strncmp(tokens[1], DF_MIME_TOKEN, strlen(DF_MIME_TOKEN)) == 0) {
+		if (last_dmf == NULL)
+			errx(1, "can't append mime info to nothing!");
+
+		last_dmf->mime = strdup(tokens[2]);
+		return (last_dmf);
+	}
+
+	dmf = calloc(1, sizeof(*dmf));
+	if (dmf == NULL)
+		err(1, "calloc");
+
+	/* XXX populate */
+
+	return (dmf);
 }
 
 /*
@@ -122,6 +159,7 @@ df_next_magic_candidate(void)
 	char			 line[DF_MAX_MAGIC_LINE];
 	int			 first_rec = 1;
 	struct df_magic_match	*dm;
+	struct df_magic_match_field	*dmf, *last_dmf = NULL;
 
 	dm = calloc(1, sizeof(*dm));
 	if (!dm)
@@ -129,8 +167,10 @@ df_next_magic_candidate(void)
 	TAILQ_INIT(&dm->df_fields);
 
 	while (1) {
-		if (fgets(line, DF_MAX_MAGIC_LINE, df_state.magic_file) == NULL)
+		if (fgets(line, DF_MAX_MAGIC_LINE,df_state.magic_file) == NULL)
 			break;
+
+		df_state.magic_line++;
 
 		/* skip blank lines and comments */
 		if ((strlen(line) <= 1) || (line[0] == '#'))
@@ -143,7 +183,12 @@ df_next_magic_candidate(void)
 		}
 
 		/* XXX field struct into dm */
-		df_parse_magic_line(line);
+		dmf = df_parse_magic_line(line, last_dmf);
+
+		if (dmf != last_dmf)
+			TAILQ_INSERT_TAIL(&dm->df_fields, dmf, entry);
+
+		last_dmf = dmf;
 		first_rec = 0;
 	}
 
@@ -153,7 +198,7 @@ df_next_magic_candidate(void)
 	}
 
 	if (ferror(df_state.magic_file))
-		err(1, "df_next_magic_candidate");
+		err(1, "%s", __func__);
 
 	return (dm);
 }
@@ -171,9 +216,11 @@ df_check_match_magic(struct df_file *df)
 		return (0);
 
 	rewind(df_state.magic_file);
+	df_state.magic_line = 1;
+
 	while((dm = df_next_magic_candidate()) != NULL) {
 		/* decide if it is a match XXX */
-		free(dm);
+		free(dm); /* XXX and the rest */
 	}
 
 	return (matches);

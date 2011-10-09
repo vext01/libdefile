@@ -32,8 +32,9 @@ struct df_file {
  * Main file program state, we have one global for it.
  */
 struct df_state {
-	TAILQ_HEAD(, df_file) df_files; /* All our jobs */
-	FILE	*magic_file;	/* Magic file */
+	TAILQ_HEAD(, df_file)	 df_files;	/* All our jobs */
+	FILE			*magic_file;	/* Magic file */
+	int			 magic_line;	/* Where we are in magic db */
 };
 
 /*
@@ -86,15 +87,19 @@ enum df_magic_field_type {
  * Represents a field if a potential match from the magic database
  */
 struct df_magic_match_field {
-	u_int64_t			offset;
-	enum df_magic_field_type	type;
+	TAILQ_ENTRY(df_magic_match_field)	entry;
+	u_int64_t			 offset;      /* offset to test at */
+	enum df_magic_field_type	 type;	      /* what kind of a test */
+	char				*test;	      /* test data itself */
+	int				 test_level;  /* ie. > before offset */
+	char				*mime;        /* mime type */
 };
 
 /*
  * Represents a potential match from the magic database
  */
 struct df_magic_match {
-	TAILQ_HEAD(, df_magic_field)	df_fields;
+	TAILQ_HEAD(, df_magic_match_field)	df_fields;
 };
 
 /*
