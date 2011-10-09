@@ -15,12 +15,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <sys/param.h>
 #include <sys/stat.h>
 
+#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <err.h>
 
 #include "file.h"
 
@@ -184,6 +185,7 @@ int
 df_check_match_fs(struct df_file *df)
 {
 	struct stat	sb;
+	char		buf[MAXPATHLEN];
 
 	if (stat(df->filename, &sb) == -1) {
 		warn("stat: %s", df->filename);
@@ -212,7 +214,14 @@ df_check_match_fs(struct df_file *df)
 		return (0);
 	}
 	/* TODO DOOR ? */
-	/* TODO symlinks */
+	if (S_ISLNK(sb.st_mode)) {
+		if (readlink(df->filename, buf, sizeof(buf)) == -1) {
+			warn("unreadable symlink `%s'");
+			return (-1);
+		}
+		buf[sizeof(buf) - 1] = 0; /* readlink does not terminate */
+		/* TODO */
+	}
 	if (S_ISSOCK(sb.st_mode)) {
 		df_match_add(df, MC_FS, "socket");
 		return (0);
