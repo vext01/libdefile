@@ -36,6 +36,69 @@ struct df_state {
 	FILE	*magic_file;	/* Magic file */
 };
 
+
+/*
+ * A magic field type.
+ * This corresponds to the first field in the magic db file.
+ * It indicates how the comparison/search should be performed
+ */
+enum df_magic_field_type {
+	DF_MF_BYTE,
+	DF_MF_SHORT,
+	DF_MF_LONG,
+	DF_MF_QUAD,
+	DF_MF_FLOAT,
+	DF_MF_DOUBLE,
+	DF_MF_STRING,
+	DF_MF_PSTRING,
+	DF_MF_DATE,
+	DF_MF_QDATE,
+	DF_MF_LDATE,
+	DF_MF_QLDATE,
+	DF_MF_BESHORT,
+	DF_MF_BELONG,
+	DF_MF_BEQUAD,
+	DF_MF_BEFLOAT,
+	DF_MF_BEDOUBLE,
+	DF_MF_BEDATE,
+	DF_MF_BEQDATE,
+	DF_MF_BELDATE,
+	DF_MF_BEQLDATE,
+	DF_MF_BESTRING16,
+	DF_MF_LESHORT,
+	DF_MF_LELONG,
+	DF_MF_LEQUAD,
+	DF_MF_LEFLOAT,
+	DF_MF_LEDOUBLE,
+	DF_MF_LEDATE,
+	DF_MF_LEQDATE,
+	DF_MF_LELDATE,
+	DF_MF_LEQLDATE,
+	DF_MF_LESTRING16,
+	DF_MF_MELONG,
+	DF_MF_MEDATE,
+	DF_MF_MELDATE,
+	DF_MF_REGEX,
+	DF_MF_SEARCH,
+	DF_MF_DEFAULT
+};
+
+/*
+ * Represents a field if a potential match from the magic database
+ */
+struct df_magic_match_field {
+	uint64_t			offset;
+	enum df_magic_field_type	type;
+};
+
+
+/*
+ * Represents a potential match from the magic database
+ */
+struct df_magic_match {
+	TAILQ_HEAD(, df_magic_field)	df_fields;
+};
+
 /*
  * Represents a match in a df_file, a file may have multiple matches.
  */

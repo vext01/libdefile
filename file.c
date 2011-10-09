@@ -24,14 +24,18 @@
 
 #include "file.h"
 
-void __dead	 usage(void);
-struct df_file	*df_open(const char *);
-void		 df_state_init(int, char **);
-int		 df_check_match(struct df_file *);
-int		 df_check_match_fs(struct df_file *);
-int		 df_check_match_magic(struct df_file *);
-struct df_match *df_match_add(struct df_file *, enum match_class,
+void __dead		 usage(void);
+struct df_file		*df_open(const char *);
+void			 df_state_init(int, char **);
+int			 df_check_match(struct df_file *);
+int			 df_check_match_fs(struct df_file *);
+int			 df_check_match_magic(struct df_file *);
+struct df_match		*df_match_add(struct df_file *, enum match_class,
     const char *);
+
+/* prototype magic matching */
+struct df_magic_match		*df_next_magic_candidate(void);
+struct df_magic_match_field	*df_parse_magic_line(char *line);
 
 extern char	*__progname;
 struct df_state df_state;
@@ -101,21 +105,78 @@ err:
 	return (NULL);
 }
 
+struct df_magic_match_field *
+df_parse_magic_line(char *line)
+{
+	/* strsep, put tokens into df_magic_match_field struct XXX */
+	return (NULL);
+}
+
+/*
+ * parses the next potential match from magic db and returns in a struct
+ */
+#define DF_MAX_MAGIC_LINE		256
+struct df_magic_match *
+df_next_magic_candidate(void)
+{
+	char			 line[DF_MAX_MAGIC_LINE];
+	int			 first_rec = 1;
+	struct df_magic_match	*dm;
+
+	dm = calloc(1, sizeof(*dm));
+	if (!dm)
+		err(1, "df_next_magic_candidate: calloc");
+	TAILQ_INIT(&dm->df_fields);
+
+	while (1) {
+		if (fgets(line, DF_MAX_MAGIC_LINE, df_state.magic_file) == NULL)
+			break;
+
+		/* skip blank lines and comments */
+		if ((strlen(line) <= 1) || (line[0] == '#'))
+			continue;
+
+		if ((!first_rec) && (line[0] != '>')) {
+			/* woops, beginning of next match, go back */
+			fseek(df_state.magic_file, -(strlen(line)), SEEK_CUR);
+			break;
+		}
+
+		/* XXX field struct into dm */
+		df_parse_magic_line(line);
+		first_rec = 0;
+	}
+
+	if (feof(df_state.magic_file)) {
+		free(dm);
+		return (NULL); /* no more */
+	}
+
+	if (ferror(df_state.magic_file))
+		err(1, "df_next_magic_candidate");
+
+	return (dm);
+}
+
 /*
  * Search for matches in magic
  */
 int
 df_check_match_magic(struct df_file *df)
 {
-	int matches = 0;
+	int			matches = 0;
+	struct df_magic_match	*dm;
 
 	if (!df_state.magic_file)
 		return (0);
 
 	rewind(df_state.magic_file);
+	while((dm = df_next_magic_candidate()) != NULL) {
+		/* decide if it is a match XXX */
+		free(dm);
+	}
 
 	return (matches);
-
 }
 
 /*
