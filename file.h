@@ -19,7 +19,7 @@
 
 /*
  * Main structure which represents a file to be checked parsed, we have one
- * for each command line argument. 
+ * for each command line argument.
  */
 struct df_file {
 	TAILQ_ENTRY(df_file) entry;
@@ -34,6 +34,8 @@ struct df_file {
 struct df_state {
 	TAILQ_HEAD(, df_file) df_files; /* All our jobs */
 	FILE	*magic_file;	/* Magic file */
+	u_int	 check_flags;	/* Flags regarding file checking */
+#define CHK_NOSPECIAL 0x01
 };
 
 

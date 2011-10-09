@@ -26,7 +26,7 @@
 
 void __dead		 usage(void);
 struct df_file		*df_open(const char *);
-void			 df_state_init(int, char **);
+void			 df_state_init_files(int, char **);
 int			 df_check_match(struct df_file *);
 int			 df_check_match_fs(struct df_file *);
 int			 df_check_match_magic(struct df_file *);
@@ -48,14 +48,12 @@ usage(void)
 }
 
 /*
- * Initializes the world
- *
  * Opens all files and pushes into a TAILQ
  * Also opens magic
  * Lib
  */
 void
-df_state_init(int argc, char **argv)
+df_state_init_files(int argc, char **argv)
 {
 	struct df_file	*df;
 	int		 i;
@@ -197,16 +195,32 @@ df_check_match_fs(struct df_file *df)
 		df_match_add(df, MC_FS, "setgid");
 	if (sb.st_mode & S_ISVTX)
 		df_match_add(df, MC_FS, "sticky");
-	if (sb.st_mode & S_IFDIR)
+	if (S_ISDIR(sb.st_mode))
 		df_match_add(df, MC_FS, "directory");
-	/* TODO char devices */
-	/* TODO block devices */
-	/* TODO FIFO */
+	if (df_state.check_flags & CHK_NOSPECIAL)
+		goto ordinary;
+	if (S_ISCHR(sb.st_mode)) {
+		df_match_add(df, MC_FS, "character special");
+		return (0);
+	}
+	if (S_ISBLK(sb.st_mode)) {
+		df_match_add(df, MC_FS, "block special");
+		return (0);
+	}
+	if (S_ISFIFO(sb.st_mode)) {
+		df_match_add(df, MC_FS, "fifo (named pipe)");
+		return (0);
+	}
 	/* TODO DOOR ? */
 	/* TODO symlinks */
-	/* TODO socket */
-	/* TODO empty */
-	
+	if (S_ISSOCK(sb.st_mode)) {
+		df_match_add(df, MC_FS, "socket");
+		return (0);
+	}
+ordinary:
+	if (sb.st_size == 0)
+		df_match_add(df, MC_FS, "empty");
+
 	return (0);
 }
 
@@ -252,13 +266,24 @@ int
 main(int argc, char **argv)
 {
 	struct df_file	*df;
+	int		 ch;
 
-	if (argc < 2)
+	while ((ch = getopt(argc, argv, "s")) != -1) {
+		switch (ch) {
+		case 's':
+			df_state.check_flags |= CHK_NOSPECIAL;
+			break;
+		default:
+			usage();
+			break;	/* NOTREACHED */
+		}
+	}
+	argv += optind;
+	argc -= optind;
+	if (argc == 0)
 		usage();
 
-	argc--;
-	argv++;
-	df_state_init(argc, argv);
+	df_state_init_files(argc, argv);
 
 	TAILQ_FOREACH(df, &df_state.df_files, entry)
 		df_check_match(df);
