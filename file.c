@@ -270,7 +270,7 @@ main(int argc, char **argv)
 
 	while ((ch = getopt(argc, argv, "s")) != -1) {
 		switch (ch) {
-		case 's':
+		case 's':	/* Treat file devices as ordinary files */
 			df_state.check_flags |= CHK_NOSPECIAL;
 			break;
 		default:
