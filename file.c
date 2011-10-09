@@ -199,7 +199,14 @@ df_check_match_fs(struct df_file *df)
 		df_match_add(df, MC_FS, "sticky");
 	if (sb.st_mode & S_IFDIR)
 		df_match_add(df, MC_FS, "directory");
-
+	/* TODO char devices */
+	/* TODO block devices */
+	/* TODO FIFO */
+	/* TODO DOOR ? */
+	/* TODO symlinks */
+	/* TODO socket */
+	/* TODO empty */
+	
 	return (0);
 }
 
