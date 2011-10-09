@@ -104,7 +104,6 @@ struct df_magic_match {
 /*
  * Represents a match in a df_file, a file may have multiple matches.
  */
-
 enum match_class {
 	MC_FS,
 	MC_MAGIC,
