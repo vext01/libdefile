@@ -218,8 +218,10 @@ df_check_magic(struct df_file *df)
 	/* If file is empty, no matches */
 	if (df->sb.st_size == 0)
 		return (0);
+	/* We'll reparse the file */
+	rewind(df_state.magic_file);
 	
-
+	
 	return (0);
 }
 
@@ -320,7 +322,8 @@ df_check(struct df_file *df)
 {
 	struct df_match *dm;
 
-	(void)df_check_fs(df);
+	if (df_check_fs(df) == -1)
+		return (-1);
 	(void)df_check_magic(df);
 
 	if (!TAILQ_EMPTY(&df->df_matches))
@@ -359,7 +362,7 @@ main(int argc, char **argv)
 
 	df_state_init_files(argc, argv);
 	TAILQ_FOREACH(df, &df_state.df_files, entry)
-		df_check(df);
+		(void)df_check(df);
 
 	return (EXIT_SUCCESS);
 }
