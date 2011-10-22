@@ -25,8 +25,9 @@
 struct df_file {
 	TAILQ_ENTRY(df_file) entry;
 	TAILQ_HEAD(, df_match) df_matches;
-	FILE	*file;			/* File handler */
-	char	 filename[MAXPATHLEN];	/* File path */
+	FILE		*file;			/* File handler */
+	char		 filename[MAXPATHLEN];	/* File path */
+	struct stat	 sb;			/* File stat */
 };
 
 /*

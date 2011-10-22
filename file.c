@@ -235,16 +235,15 @@ df_check_magic(struct df_file *df)
 int
 df_check_fs(struct df_file *df)
 {
-	struct stat	 sb;
 	char		 buf[MAXPATHLEN];
 	int		 n;
 	struct df_file	*df2;
 
-	if (lstat(df->filename, &sb) == -1) {
+	if (lstat(df->filename, &df->sb) == -1) {
 		warn("stat: %s", df->filename);
 		return (-1);
 	}
-	if (S_ISLNK(sb.st_mode)) {
+	if (S_ISLNK(df->sb.st_mode)) {
 		bzero(buf, sizeof(buf));
 		n = readlink(df->filename, buf, sizeof(buf));
 		if (n == -1) {
@@ -263,35 +262,35 @@ df_check_fs(struct df_file *df)
 		df_match_add(df, MC_FS, "symbolic link to `%s'", buf);
 		return (0);
 	}
-	if (sb.st_mode & S_ISUID)
+	if (df->sb.st_mode & S_ISUID)
 		df_match_add(df, MC_FS, "setuid");
-	if (sb.st_mode & S_ISGID)
+	if (df->sb.st_mode & S_ISGID)
 		df_match_add(df, MC_FS, "setgid");
-	if (sb.st_mode & S_ISVTX)
+	if (df->sb.st_mode & S_ISVTX)
 		df_match_add(df, MC_FS, "sticky");
-	if (S_ISDIR(sb.st_mode))
+	if (S_ISDIR(df->sb.st_mode))
 		df_match_add(df, MC_FS, "directory");
 	if (df_state.check_flags & CHK_NOSPECIAL)
 		goto ordinary;
-	if (S_ISCHR(sb.st_mode)) {
+	if (S_ISCHR(df->sb.st_mode)) {
 		df_match_add(df, MC_FS, "character special");
 		return (0);
 	}
-	if (S_ISBLK(sb.st_mode)) {
+	if (S_ISBLK(df->sb.st_mode)) {
 		df_match_add(df, MC_FS, "block special");
 		return (0);
 	}
-	if (S_ISFIFO(sb.st_mode)) {
+	if (S_ISFIFO(df->sb.st_mode)) {
 		df_match_add(df, MC_FS, "fifo (named pipe)");
 		return (0);
 	}
 	/* TODO DOOR ? */
-	if (S_ISSOCK(sb.st_mode)) {
+	if (S_ISSOCK(df->sb.st_mode)) {
 		df_match_add(df, MC_FS, "socket");
 		return (0);
 	}
 ordinary:
-	if (sb.st_size == 0)
+	if (df->sb.st_size == 0)
 		df_match_add(df, MC_FS, "empty");
 
 	return (0);
