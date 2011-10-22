@@ -213,9 +213,9 @@ df_next_magic_candidate(void)
 int
 df_check_magic(struct df_file *df)
 {
-	int level;
-	size_t linelen, lineno;
-	char *line, *p, **ap, *argv[5];
+	size_t linelen;
+	char *line, *p, **ap;
+	struct df_parser dp;
 
 	/* No magic file, so no matches */
 	if (df_state.magic_file == NULL)
@@ -225,12 +225,14 @@ df_check_magic(struct df_file *df)
 		return (0);
 	/* We'll reparse the file */
 	rewind(df_state.magic_file);
+	bzero(&dp, sizeof(dp));
 	/* Parser state */
-	level  = -1;
-	lineno = 0;
+	dp.magic_file = df_state.magic_file;
+	dp.level      = -1;
+	dp.lineno     = 0;
 	/* Get a line */
 	while (!feof(df_state.magic_file)) {
-		if ((line = fparseln(df_state.magic_file, &linelen, &lineno,
+		if ((line = fparseln(df_state.magic_file, &linelen, &dp.lineno,
 		    NULL, 0)) == NULL) {
 			if (ferror(df_state.magic_file)) {
 				warn("magic file");
@@ -242,14 +244,15 @@ df_check_magic(struct df_file *df)
 		if (*p == 0) 
 			goto nextline;
 		/* Break The Line !, Guano Apes rules */
-		for (ap = argv; ap < &argv[3] &&
+		for (ap = dp.argv; ap < &dp.argv[3] &&
 			 (*ap = strsep(&p, " \t")) != NULL;) {
 			if (**ap != 0)
 				ap++;
 		}
-		*ap = NULL;
+		*ap	   = NULL;
 		/* Get the remainder of the line */
-		argv[3] = p;
+		dp.argv[3] = p;
+		dp.argv[4] = NULL;
 
 	nextline:
 		free(line);

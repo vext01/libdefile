@@ -123,3 +123,11 @@ struct df_match {
 	enum match_class class;		/* df_match_class */
 	/* XXX maybe instance in future ? */
 };
+
+struct df_parser {
+	FILE	*magic_file;
+	size_t	 lineno;
+	int	 level;
+	char	*line;
+	char	*argv[5];
+};
