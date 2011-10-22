@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <util.h>
 
 #include "file.h"
 
@@ -212,6 +213,10 @@ df_next_magic_candidate(void)
 int
 df_check_magic(struct df_file *df)
 {
+	int level;
+	size_t linelen, lineno;
+	char *line, *p, **ap, *argv[5];
+
 	/* No magic file, so no matches */
 	if (df_state.magic_file == NULL)
 		return (0);
@@ -220,7 +225,35 @@ df_check_magic(struct df_file *df)
 		return (0);
 	/* We'll reparse the file */
 	rewind(df_state.magic_file);
-	
+	/* Parser state */
+	level  = -1;
+	lineno = 0;
+	/* Get a line */
+	while (!feof(df_state.magic_file)) {
+		if ((line = fparseln(df_state.magic_file, &linelen, &lineno,
+		    NULL, 0)) == NULL) {
+			if (ferror(df_state.magic_file)) {
+				warn("magic file");
+				return (-1);
+			} else
+				continue;
+		}
+		p = line;
+		if (*p == 0) 
+			goto nextline;
+		/* Break The Line !, Guano Apes rules */
+		for (ap = argv; ap < &argv[3] &&
+			 (*ap = strsep(&p, " \t")) != NULL;) {
+			if (**ap != 0)
+				ap++;
+		}
+		*ap = NULL;
+		/* Get the remainder of the line */
+		argv[3] = p;
+
+	nextline:
+		free(line);
+	}
 	
 	return (0);
 }

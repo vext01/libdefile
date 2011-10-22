@@ -14,6 +14,9 @@ CFLAGS+=        -Wshadow -Wpointer-arith -Wcast-qual
 CFLAGS+=        -Wsign-compare
 #MAN=            file.1 magic.5
 
+LDADD+=         -lutil
+DPADD+=         ${LIBUTIL}
+
 #CLEANFILES+=    magic post-magic
 all:            file
 
