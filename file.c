@@ -282,6 +282,7 @@ dp_prepare(struct df_parser *dp)
 {
 	char *cp, *mask;
 	const char *errstr;
+	u_int64_t maskval;
 
 	/* Reset */
 	dp->ml = 0;
@@ -313,8 +314,20 @@ dp_prepare(struct df_parser *dp)
 	/* Split mask and test type first */
 	cp   = dp->argv[1];
 	mask = strchr(cp, ':');
-	if (mask != NULL)
+	if (mask != NULL) {
 		*mask++ = 0;
+		/* Octa TODO */
+		/* Hexa */
+		if (strlen(mask) > 1 && mask[0] == '0' && mask[1] == 'x') {
+			errno = 0;
+			maskval = strtoll(mask, NULL, 16);
+			if (errno) {
+				warn("dp_prepare: %s", mask);
+				return (-1);
+			}
+		}
+		/* Decimal TODO */
+	}
 	/* TODO convert mask */
 	if (strcmp("byte", cp) == 0)
 		dp->mt = MT_BYTE;
