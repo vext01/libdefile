@@ -140,7 +140,7 @@ df_check_magic(struct df_file *df)
 				continue;
 		}
 		p = line;
-		if (*p == 0) 
+		if (*p == 0)
 			goto nextline;
 		/* Break The Line !, Guano Apes rules */
 		for (ap = dp.argv; ap < &dp.argv[3] &&
@@ -159,7 +159,7 @@ df_check_magic(struct df_file *df)
 	nextline:
 		free(line);
 	}
-	
+
 	return (0);
 }
 
@@ -282,7 +282,7 @@ dp_prepare(struct df_parser *dp)
 {
 	char *cp, *mask;
 	const char *errstr;
-	
+
 	/* Reset */
 	dp->ml = 0;
 	dp->mo = 0;

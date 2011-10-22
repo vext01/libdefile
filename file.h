@@ -106,6 +106,9 @@ struct df_match {
 	/* XXX maybe instance in future ? */
 };
 
+/*
+ * The parser state, set every time we parse a new line.
+ */
 struct df_parser {
 	FILE			*magic_file;
 	size_t			 lineno; 	/* Current line number */
