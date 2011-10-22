@@ -38,6 +38,7 @@ int			 df_check_fs(struct df_file *);
 int			 df_check_magic(struct df_file *);
 struct df_match		*df_match_add(struct df_file *, enum match_class,
     const char *, ...);
+int			 dp_prepare(struct df_parser *);
 
 extern char	*__progname;
 struct df_state df_state;
@@ -151,6 +152,9 @@ df_check_magic(struct df_file *df)
 		/* Get the remainder of the line */
 		dp.argv[3] = p;
 		dp.argv[4] = NULL;
+		/* Convert to something meaningfull */
+		if (dp_prepare(&dp) == -1)
+			goto nextline;
 
 	nextline:
 		free(line);
@@ -266,6 +270,133 @@ df_check(struct df_file *df)
 		printf("%s ", dm->desc);
 	if (!TAILQ_EMPTY(&df->df_matches))
 		printf("\n");
+
+	return (0);
+}
+
+/*
+ * Bake dp into something usable.
+ */
+int
+dp_prepare(struct df_parser *dp)
+{
+	char *cp, *mask;
+	const char *errstr;
+	
+	/* Reset */
+	dp->ml = 0;
+	dp->mo = 0;
+	dp->mt = MT_UNKNOWN;
+	/* First analyze level */
+	if (*dp->argv[0] == '0')
+		dp->ml = 0;
+	else if (*dp->argv[0] == '>') {
+		cp = dp->argv[0];
+		/* Count the > */
+		while (cp && *cp++ == '>')
+			dp->ml++;
+		/* If cp is still not NULL, we have an offset */
+		/* XXX does not handle () */
+		if (cp != NULL) {
+			dp->mo = (unsigned long)strtonum(cp, 0,
+			    ULONG_MAX, &errstr);
+			if (errstr) {
+				warnx("dp_prepare: strtonum %s", cp);
+				return (-1);
+			}
+		}
+	} else {
+		warnx("dp_prepare: unexpected %s", dp->argv[0]);
+		return (-1);
+	}
+	/* Second, analyze test type */
+	/* Split mask and test type first */
+	cp   = dp->argv[1];
+	mask = strchr(cp, ':');
+	if (mask != NULL)
+		*mask++ = 0;
+	/* TODO convert mask */
+	if (strcmp("byte", cp) == 0)
+		dp->mt = MT_BYTE;
+	else if (strcmp("short", cp) == 0)
+		dp->mt = MT_SHORT;
+	else if (strcmp("long", cp) == 0)
+		dp->mt = MT_LONG;
+	else if (strcmp("QUAD", cp) == 0)
+		dp->mt = MT_QUAD;
+	else if (strcmp("float", cp) == 0)
+		dp->mt = MT_FLOAT;
+	else if (strcmp("double", cp) == 0)
+		dp->mt = MT_DOUBLE;
+	else if (strcmp("string", cp) == 0)
+		dp->mt = MT_STRING;
+	else if (strcmp("pstring", cp) == 0)
+		dp->mt = MT_PSTRING;
+	else if (strcmp("date", cp) == 0)
+		dp->mt = MT_DATE;
+	else if (strcmp("qdate", cp) == 0)
+		dp->mt = MT_QDATE;
+	else if (strcmp("ldate", cp) == 0)
+		dp->mt = MT_LDATE;
+	else if (strcmp("qldate", cp) == 0)
+		dp->mt = MT_QLDATE;
+	else if (strcmp("beshort", cp) == 0)
+		dp->mt = MT_BESHORT;
+	else if (strcmp("belong", cp) == 0)
+		dp->mt = MT_BELONG;
+	else if (strcmp("bequad", cp) == 0)
+		dp->mt = MT_BEQUAD;
+	else if (strcmp("befloat", cp) == 0)
+		dp->mt = MT_BEFLOAT;
+	else if (strcmp("bedouble", cp) == 0)
+		dp->mt = MT_BEDOUBLE;
+	else if (strcmp("bedate", cp) == 0)
+		dp->mt = MT_BEDATE;
+	else if (strcmp("beqdate", cp) == 0)
+		dp->mt = MT_BEQDATE;
+	else if (strcmp("beldate", cp) == 0)
+		dp->mt = MT_BELDATE;
+	else if (strcmp("beqldate", cp) == 0)
+		dp->mt = MT_BEQLDATE;
+	else if (strcmp("bestring16", cp) == 0)
+		dp->mt = MT_BESTRING16;
+	else if (strcmp("leshort", cp) == 0)
+		dp->mt = MT_LESHORT;
+	else if (strcmp("lelong", cp) == 0)
+		dp->mt = MT_LELONG;
+	else if (strcmp("lequad", cp) == 0)
+		dp->mt = MT_LEQUAD;
+	else if (strcmp("lefloat", cp) == 0)
+		dp->mt = MT_LEFLOAT;
+	else if (strcmp("ledouble", cp) == 0)
+		dp->mt = MT_LEDOUBLE;
+	else if (strcmp("ledate", cp) == 0)
+		dp->mt = MT_LEDATE;
+	else if (strcmp("leqdate", cp) == 0)
+		dp->mt = MT_LEQDATE;
+	else if (strcmp("leldate", cp) == 0)
+		dp->mt = MT_LELDATE;
+	else if (strcmp("leqldate", cp) == 0)
+		dp->mt = MT_LEQLDATE;
+	else if (strcmp("lestring16", cp) == 0)
+		dp->mt = MT_LESTRING16;
+	else if (strcmp("melong", cp) == 0)
+		dp->mt = MT_MELONG;
+	else if (strcmp("medate", cp) == 0)
+		dp->mt = MT_MEDATE;
+	else if (strcmp("meldate", cp) == 0)
+		dp->mt = MT_MELDATE;
+	else if (strcmp("regex", cp) == 0)
+		dp->mt = MT_REGEX;
+	else if (strcmp("search", cp) == 0)
+		dp->mt = MT_SEARCH;
+	else if (strcmp("default", cp) == 0)
+		dp->mt = MT_DEFAULT;
+	/* Check if we found something. */
+	if (dp->mt == MT_UNKNOWN) {
+		warnx("dp_prepare: Uknown mt %s", cp);
+		return (-1);
+	}
 
 	return (0);
 }

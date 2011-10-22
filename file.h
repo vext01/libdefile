@@ -47,45 +47,46 @@ struct df_state {
  * This corresponds to the second field in the magic db file.
  * It indicates how the comparison/search should be performed
  */
-enum df_magic_test_type {
-	MF_BYTE,
-	MF_SHORT,
-	MF_LONG,
-	MF_QUAD,
-	MF_FLOAT,
-	MF_DOUBLE,
-	MF_STRING,
-	MF_PSTRING,
-	MF_DATE,
-	MF_QDATE,
-	MF_LDATE,
-	MF_QLDATE,
-	MF_BESHORT,
-	MF_BELONG,
-	MF_BEQUAD,
-	MF_BEFLOAT,
-	MF_BEDOUBLE,
-	MF_BEDATE,
-	MF_BEQDATE,
-	MF_BELDATE,
-	MF_BEQLDATE,
-	MF_BESTRING16,
-	MF_LESHORT,
-	MF_LELONG,
-	MF_LEQUAD,
-	MF_LEFLOAT,
-	MF_LEDOUBLE,
-	MF_LEDATE,
-	MF_LEQDATE,
-	MF_LELDATE,
-	MF_LEQLDATE,
-	MF_LESTRING16,
-	MF_MELONG,
-	MF_MEDATE,
-	MF_MELDATE,
-	MF_REGEX,
-	MF_SEARCH,
-	MF_DEFAULT
+enum df_magic_test {
+	MT_UNKNOWN,
+	MT_BYTE,
+	MT_SHORT,
+	MT_LONG,
+	MT_QUAD,
+	MT_FLOAT,
+	MT_DOUBLE,
+	MT_STRING,
+	MT_PSTRING,
+	MT_DATE,
+	MT_QDATE,
+	MT_LDATE,
+	MT_QLDATE,
+	MT_BESHORT,
+	MT_BELONG,
+	MT_BEQUAD,
+	MT_BEFLOAT,
+	MT_BEDOUBLE,
+	MT_BEDATE,
+	MT_BEQDATE,
+	MT_BELDATE,
+	MT_BEQLDATE,
+	MT_BESTRING16,
+	MT_LESHORT,
+	MT_LELONG,
+	MT_LEQUAD,
+	MT_LEFLOAT,
+	MT_LEDOUBLE,
+	MT_LEDATE,
+	MT_LEQDATE,
+	MT_LELDATE,
+	MT_LEQLDATE,
+	MT_LESTRING16,
+	MT_MELONG,
+	MT_MEDATE,
+	MT_MELDATE,
+	MT_REGEX,
+	MT_SEARCH,
+	MT_DEFAULT
 };
 
 /*
@@ -106,9 +107,12 @@ struct df_match {
 };
 
 struct df_parser {
-	FILE	*magic_file;
-	size_t	 lineno;
-	int	 level;
-	char	*line;
-	char	*argv[5];
+	FILE			*magic_file;
+	size_t			 lineno; 	/* Current line number */
+	char			*line;		/* Current linet */
+	int			 level; 	/* Current parser level */
+	char			*argv[5];	/* The broken tokens */
+	u_long			 mo;		/* Magic offset */
+	int			 ml; 		/* Magic level */
+	enum df_magic_test	 mt; 		/* Magic type */
 };
