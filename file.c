@@ -212,21 +212,15 @@ df_next_magic_candidate(void)
 int
 df_check_magic(struct df_file *df)
 {
-	int			matches = 0;
-	struct df_magic_match	*dm;
-
-	if (!df_state.magic_file)
+	/* No magic file, so no matches */
+	if (df_state.magic_file == NULL)
 		return (0);
+	/* If file is empty, no matches */
+	if (df->sb.st_size == 0)
+		return (0);
+	
 
-	rewind(df_state.magic_file);
-	df_state.magic_line = 1;
-
-	while((dm = df_next_magic_candidate()) != NULL) {
-		/* decide if it is a match XXX */
-		free(dm); /* XXX and the rest */
-	}
-
-	return (matches);
+	return (0);
 }
 
 /*
