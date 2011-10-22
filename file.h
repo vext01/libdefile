@@ -43,68 +43,49 @@ struct df_state {
 };
 
 /*
- * A magic field type.
- * This corresponds to the first field in the magic db file.
+ * A magic test type.
+ * This corresponds to the second field in the magic db file.
  * It indicates how the comparison/search should be performed
  */
-enum df_magic_field_type {
-	DF_MF_BYTE,
-	DF_MF_SHORT,
-	DF_MF_LONG,
-	DF_MF_QUAD,
-	DF_MF_FLOAT,
-	DF_MF_DOUBLE,
-	DF_MF_STRING,
-	DF_MF_PSTRING,
-	DF_MF_DATE,
-	DF_MF_QDATE,
-	DF_MF_LDATE,
-	DF_MF_QLDATE,
-	DF_MF_BESHORT,
-	DF_MF_BELONG,
-	DF_MF_BEQUAD,
-	DF_MF_BEFLOAT,
-	DF_MF_BEDOUBLE,
-	DF_MF_BEDATE,
-	DF_MF_BEQDATE,
-	DF_MF_BELDATE,
-	DF_MF_BEQLDATE,
-	DF_MF_BESTRING16,
-	DF_MF_LESHORT,
-	DF_MF_LELONG,
-	DF_MF_LEQUAD,
-	DF_MF_LEFLOAT,
-	DF_MF_LEDOUBLE,
-	DF_MF_LEDATE,
-	DF_MF_LEQDATE,
-	DF_MF_LELDATE,
-	DF_MF_LEQLDATE,
-	DF_MF_LESTRING16,
-	DF_MF_MELONG,
-	DF_MF_MEDATE,
-	DF_MF_MELDATE,
-	DF_MF_REGEX,
-	DF_MF_SEARCH,
-	DF_MF_DEFAULT
-};
-
-/*
- * Represents a field if a potential match from the magic database
- */
-struct df_magic_match_field {
-	TAILQ_ENTRY(df_magic_match_field)	entry;
-	u_int64_t			 offset;      /* offset to test at */
-	enum df_magic_field_type	 type;	      /* what kind of a test */
-	char				*test;	      /* test data itself */
-	int				 test_level;  /* ie. > before offset */
-	char				*mime;        /* mime type */
-};
-
-/*
- * Represents a potential match from the magic database
- */
-struct df_magic_match {
-	TAILQ_HEAD(, df_magic_match_field)	df_fields;
+enum df_magic_test_type {
+	MF_BYTE,
+	MF_SHORT,
+	MF_LONG,
+	MF_QUAD,
+	MF_FLOAT,
+	MF_DOUBLE,
+	MF_STRING,
+	MF_PSTRING,
+	MF_DATE,
+	MF_QDATE,
+	MF_LDATE,
+	MF_QLDATE,
+	MF_BESHORT,
+	MF_BELONG,
+	MF_BEQUAD,
+	MF_BEFLOAT,
+	MF_BEDOUBLE,
+	MF_BEDATE,
+	MF_BEQDATE,
+	MF_BELDATE,
+	MF_BEQLDATE,
+	MF_BESTRING16,
+	MF_LESHORT,
+	MF_LELONG,
+	MF_LEQUAD,
+	MF_LEFLOAT,
+	MF_LEDOUBLE,
+	MF_LEDATE,
+	MF_LEQDATE,
+	MF_LELDATE,
+	MF_LEQLDATE,
+	MF_LESTRING16,
+	MF_MELONG,
+	MF_MEDATE,
+	MF_MELDATE,
+	MF_REGEX,
+	MF_SEARCH,
+	MF_DEFAULT
 };
 
 /*
