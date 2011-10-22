@@ -328,7 +328,6 @@ dp_prepare(struct df_parser *dp)
 		}
 		/* Decimal TODO */
 	}
-	/* TODO convert mask */
 	if (strcmp("byte", cp) == 0)
 		dp->mt = MT_BYTE;
 	else if (strcmp("short", cp) == 0)
