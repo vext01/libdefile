@@ -32,9 +32,9 @@
 void __dead		 usage(void);
 struct df_file		*df_open(const char *);
 void			 df_state_init_files(int, char **);
-int			 df_check_match(struct df_file *);
-int			 df_check_match_fs(struct df_file *);
-int			 df_check_match_magic(struct df_file *);
+int			 df_check(struct df_file *);
+int			 df_check_fs(struct df_file *);
+int			 df_check_magic(struct df_file *);
 struct df_match		*df_match_add(struct df_file *, enum match_class,
     const char *, ...);
 
@@ -210,7 +210,7 @@ df_next_magic_candidate(void)
  * Search for matches in magic
  */
 int
-df_check_match_magic(struct df_file *df)
+df_check_magic(struct df_file *df)
 {
 	int			matches = 0;
 	struct df_magic_match	*dm;
@@ -233,7 +233,7 @@ df_check_match_magic(struct df_file *df)
  * Search for matches in filesystem goo.
  */
 int
-df_check_match_fs(struct df_file *df)
+df_check_fs(struct df_file *df)
 {
 	struct stat	 sb;
 	char		 buf[MAXPATHLEN];
@@ -323,12 +323,12 @@ df_match_add(struct df_file *df, enum match_class mc, const char *desc, ...)
  * Check
  */
 int
-df_check_match(struct df_file *df)
+df_check(struct df_file *df)
 {
 	struct df_match *dm;
 
-	(void)df_check_match_fs(df);
-	(void)df_check_match_magic(df);
+	(void)df_check_fs(df);
+	(void)df_check_magic(df);
 
 	if (!TAILQ_EMPTY(&df->df_matches))
 		printf("%s: ", df->filename);
@@ -366,7 +366,7 @@ main(int argc, char **argv)
 
 	df_state_init_files(argc, argv);
 	TAILQ_FOREACH(df, &df_state.df_files, entry)
-		df_check_match(df);
+		df_check(df);
 
 	return (EXIT_SUCCESS);
 }
