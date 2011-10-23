@@ -157,7 +157,7 @@ df_check_magic(struct df_file *df)
 		/* Convert to something meaningfull */
 		if (dp_prepare(&dp) == -1)
 			goto nextline;
-		
+
 	nextline:
 		free(line);
 	}
@@ -291,7 +291,7 @@ dp_prepare_mo(struct df_parser *dp, const char *s)
 	/*
 	 * Check for an indirect offset, we're parsing something like:
 	 * (0x3c.l)
-	 * (( x [.[bslBSL]][+-][ y ]) 
+	 * (( x [.[bslBSL]][+-][ y ])
 	 */
 	if (*cp == '(') {
 		if ((end = strchr(cp, ')')) == NULL) {
@@ -363,13 +363,13 @@ dp_prepare_mo(struct df_parser *dp, const char *s)
 		    cp, dp->lineno);
 		return (-1);
 	}
-	
+
 	return (0);
-	
+
 errorinv:
 	warnx("dp_prepare_mo: Invalid offset at line %zd",
 	    dp->lineno);
-	
+
 	return (-1);
 }
 /*
