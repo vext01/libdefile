@@ -39,6 +39,7 @@ int			 df_check_magic(struct df_file *);
 struct df_match		*df_match_add(struct df_file *, enum match_class,
     const char *, ...);
 int			 dp_prepare(struct df_parser *);
+int			 dp_prepare_mo(struct df_parser *, const char *);
 
 extern char	*__progname;
 struct df_state df_state;
@@ -275,13 +276,109 @@ df_check(struct df_file *df)
 }
 
 /*
+ * Prepare magic offset
+ */
+int
+dp_prepare_mo(struct df_parser *dp, const char *s)
+{
+	char *end = NULL;
+	const char *cp = s;
+	const char *errstr;
+
+	if (cp == NULL)
+		goto errorinv;
+
+	/*
+	 * Check for an indirect offset, we're parsing something like:
+	 * (0x3c.l)
+	 * (( x [.[bslBSL]][+-][ y ]) 
+	 */
+	if (*cp == '(') {
+		if ((end = strchr(cp, ')')) == NULL) {
+			warnx("Unclosed paren at line %zd", dp->lineno);
+			return (-1);
+		}
+		*end = 0;	/* terminate */
+		dp->mflags |= MF_INDIRECT;
+		cp++;		/* Jump over ( */
+		/* If type not specified, assume long */
+		if ((end = strchr(cp, '.')) == NULL)
+			dp->mo_itype = MT_LONG;
+		else {
+			switch (*cp) {
+			case 'c':
+			case 'b':
+			case 'C':
+			case 'B':
+				dp->mo_itype = MT_BYTE;
+				break;
+			case 'h':
+			case 's':
+				dp->mo_itype = MT_LESHORT;
+				break;
+			case 'l':
+				dp->mo_itype = MT_LELONG;
+				break;
+			case 'S':
+				dp->mo_itype = MT_BESHORT;
+				break;
+			case 'L':
+				dp->mo_itype = MT_BELONG;
+				break;
+			case 'e':
+			case 'f':
+			case 'g':
+				dp->mo_itype = MT_LEDOUBLE;
+				break;
+			case 'E':
+			case 'F':
+			case 'G':
+				dp->mo_itype = MT_BEDOUBLE;
+				break;
+			default:
+				warnx("indirect offset type `%c' "
+				    "invalid at line %zd", *cp, dp->lineno);
+				return (-1);
+				break; /* NOTREACHED */
+			}
+		}
+	}
+	/* TODO handle negative and octal */
+	if (cp == NULL)
+		goto errorinv;
+	/* Try hex */
+	if (strlen(cp) > 1 && cp[0] == '0' && cp[1] == 'x') {
+		errno = 0;
+		dp->mo = strtoll(cp, NULL, 16);
+		if (errno) {
+			warn("dp_prepare_mo: strtoll: %s "
+			    "line %zd", cp, dp->lineno);
+			return (-1);
+		}
+	}
+	dp->mo = (unsigned long)strtonum(cp, 0,
+	    ULONG_MAX, &errstr);
+	if (errstr) {
+		warnx("dp_prepare_mo: strtonum %s at line %zd",
+		    cp, dp->lineno);
+		return (-1);
+	}
+	
+	return (0);
+	
+errorinv:
+	warnx("dp_prepare_mo: Invalid offset at line %zd",
+	    dp->lineno);
+	
+	return (-1);
+}
+/*
  * Bake dp into something usable.
  */
 int
 dp_prepare(struct df_parser *dp)
 {
 	char *cp, *mask;
-	const char *errstr;
 	u_int64_t maskval;
 
 	/* Reset */
@@ -296,16 +393,8 @@ dp_prepare(struct df_parser *dp)
 		/* Count the > */
 		while (cp && *cp++ == '>')
 			dp->ml++;
-		/* If cp is still not NULL, we have an offset */
-		/* XXX does not handle () */
-		if (cp != NULL) {
-			dp->mo = (unsigned long)strtonum(cp, 0,
-			    ULONG_MAX, &errstr);
-			if (errstr) {
-				warnx("dp_prepare: strtonum %s", cp);
-				return (-1);
-			}
-		}
+		if (dp_prepare_mo(dp, cp) == -1)
+			return (-1);
 	} else {
 		warnx("dp_prepare: unexpected %s", dp->argv[0]);
 		return (-1);
@@ -406,7 +495,8 @@ dp_prepare(struct df_parser *dp)
 		dp->mt = MT_DEFAULT;
 	/* Check if we found something. */
 	if (dp->mt == MT_UNKNOWN) {
-		warnx("dp_prepare: Uknown mt %s", cp);
+		warnx("dp_prepare: Uknown magic type %s at line %zd",
+		    cp, dp->lineno);
 		return (-1);
 	}
 
