@@ -47,7 +47,8 @@ struct df_state df_state;
 void __dead
 usage(void)
 {
-	fprintf(stderr, "usage: [-Ls] %s file [file...]\n", __progname);
+	fprintf(stderr, "usage: [-Ls] [-f magic] %s file [file...]\n",
+	    __progname);
 	exit(1);
 }
 
@@ -70,9 +71,9 @@ df_state_init_files(int argc, char **argv)
 		TAILQ_INSERT_TAIL(&df_state.df_files, df, entry);
 	}
 	/* XXX we can't bail out, other classes may match */
-	df_state.magic_file = fopen(MAGIC, "r");
+	df_state.magic_file = fopen(df_state.magic_path, "r");
 	if (df_state.magic_file == NULL)
-		err(1, "df_open: %s", MAGIC);
+		err(1, "df_open: %s", df_state.magic_path);
 }
 
 /* Lib */
@@ -509,8 +510,11 @@ main(int argc, char **argv)
 	struct df_file	*df;
 	int		 ch;
 
-	while ((ch = getopt(argc, argv, "Ls")) != -1) {
+	while ((ch = getopt(argc, argv, "f:Ls")) != -1) {
 		switch (ch) {
+		case 'f':
+			df_state.magic_path = optarg;
+			break;
 		case 's':	/* Treat file devices as ordinary files */
 			df_state.check_flags |= CHK_NOSPECIAL;
 			break;

@@ -35,6 +35,7 @@ struct df_file {
  */
 struct df_state {
 	TAILQ_HEAD(, df_file)	 df_files;	/* All our jobs */
+	const char		*magic_path;	/* Magic file path */
 	FILE			*magic_file;	/* Magic file */
 	int			 magic_line;	/* Where we are in magic db */
 	u_int	 		 check_flags;	/* Checking knobs */
