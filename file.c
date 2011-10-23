@@ -157,7 +157,7 @@ df_check_magic(struct df_file *df)
 		/* Convert to something meaningfull */
 		if (dp_prepare(&dp) == -1)
 			goto nextline;
-
+		
 	nextline:
 		free(line);
 	}
@@ -284,11 +284,10 @@ dp_prepare_mo(struct df_parser *dp, const char *s)
 {
 	char *end = NULL;
 	const char *cp = s;
-	const char *errstr;
+	const char *errstr = NULL;
 
 	if (cp == NULL)
 		goto errorinv;
-
 	/*
 	 * Check for an indirect offset, we're parsing something like:
 	 * (0x3c.l)
@@ -357,10 +356,10 @@ dp_prepare_mo(struct df_parser *dp, const char *s)
 			return (-1);
 		}
 	}
-	dp->mo = (unsigned long)strtonum(cp, 0,
-	    ULONG_MAX, &errstr);
+	dp->mo = (unsigned long)strtonum("1", 0,
+	    LLONG_MAX, &errstr);
 	if (errstr) {
-		warnx("dp_prepare_mo: strtonum %s at line %zd",
+		warn("dp_prepare_mo: strtonum %s at line %zd",
 		    cp, dp->lineno);
 		return (-1);
 	}
@@ -392,8 +391,10 @@ dp_prepare(struct df_parser *dp)
 	else if (*dp->argv[0] == '>') {
 		cp = dp->argv[0];
 		/* Count the > */
-		while (cp && *cp++ == '>')
+		while (cp && *cp == '>') {
 			dp->ml++;
+			cp++;
+		}
 		if (dp_prepare_mo(dp, cp) == -1)
 			return (-1);
 	} else {
