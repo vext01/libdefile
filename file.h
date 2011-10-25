@@ -176,10 +176,13 @@ struct df_parser {
 	u_int32_t		  flags;
 };
 
-#define DERRX(eval, fmt, args...)	do { \
-	errx(eval, "%s:%d in %s(): " fmt, __FILE__, __LINE__, __func__, args); \
+#ifdef DEBUG
+#define DPRINTF(lvl, args...)	do { \
+	if (df_debug >= lvl) \
+		fprintf(stderr, "DEBUG" #lvl ": "  args); \
+		fprintf(stderr, "\n"); \
 	} while(0);
-
-#define DERR(eval, fmt, args...)	do { \
-	err(eval, "%s:%d in %s(): " fmt, __FILE__, __LINE__, __func__, args); \
-	} while(0);
+#else
+#define DPRINTF(fmt, args...)
+	/* NOP */
+#endif

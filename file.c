@@ -42,12 +42,14 @@ int			 dp_prepare(struct df_parser *);
 int			 dp_prepare_mo(struct df_parser *, const char *);
 
 extern char	*__progname;
-struct df_state df_state;
+struct df_state  df_state;
+int		 df_debug = 0;
 
 void __dead
 usage(void)
 {
-	fprintf(stderr, "usage: [-Ls] [-f magic] %s file [file...]\n",
+	/* XXX the more '-d' specified, the more verbose. How to express this in usage()? */
+	fprintf(stderr, "usage: [-dLs] [-f magic] %s file [file...]\n",
 	    __progname);
 	exit(1);
 }
@@ -70,6 +72,7 @@ df_state_init_files(int argc, char **argv)
 			err(1, "df_open: %s", argv[i]);
 		TAILQ_INSERT_TAIL(&df_state.df_files, df, entry);
 	}
+
 	/* XXX we can't bail out, other classes may match */
 	df_state.magic_file = fopen(df_state.magic_path, "r");
 	if (df_state.magic_file == NULL)
@@ -511,8 +514,11 @@ main(int argc, char **argv)
 	struct df_file	*df;
 	int		 ch;
 
-	while ((ch = getopt(argc, argv, "f:Ls")) != -1) {
+	while ((ch = getopt(argc, argv, "df:Ls")) != -1) {
 		switch (ch) {
+		case 'd':
+			df_debug++;
+			break;
 		case 'f':
 			df_state.magic_path = optarg;
 			break;
