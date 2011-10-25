@@ -530,6 +530,9 @@ main(int argc, char **argv)
 	while ((ch = getopt(argc, argv, "df:Ls")) != -1) {
 		switch (ch) {
 		case 'd':
+#ifndef DEBUG
+			errx(1, "this binary was not built with -DDEBUG");
+#endif
 			df_debug++;
 			break;
 		case 'f':
