@@ -370,7 +370,7 @@ dp_prepare_mo(struct df_parser *dp, const char *s)
 			return (-1);
 		}
 	}
-	dp->mo = (unsigned long)strtonum("1", 0,
+	dp->mo = (unsigned long)strtonum(cp, 0,
 	    LLONG_MAX, &errstr);
 	if (errstr) {
 		warn("dp_prepare_mo: strtonum %s at line %zd",
