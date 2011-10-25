@@ -107,6 +107,15 @@ struct df_match {
 	/* XXX maybe instance in future ? */
 };
 
+#define DF_TEST_PFX_EQ			(1 << 0)
+#define DF_TEST_PFX_LT			(1 << 1)
+#define DF_TEST_PFX_GT			(1 << 2)
+#define DF_TEST_PFX_BSET		(1 << 3)
+#define DF_TEST_PFX_BCLR		(1 << 4)
+#define DF_TEST_PFX_BNEG		(1 << 5)
+#define DF_TEST_PFX_X			(1 << 6)
+#define DF_TEST_PFX_NEG			(1 << 7)
+
 /*
  * The parser state, set every time we parse a new line.
  */
