@@ -120,7 +120,7 @@ struct df_parser {
 	enum df_magic_test	 mo_itype; 	/* Indirect type if MF_INDIRECT */
 	int			 ml; 		/* Magic level */
 	enum df_magic_test	 mt; 		/* Magic type */
-	u_int 			 mflags;	/* Magic flags */
+	u_int32_t		 mflags;	/* Magic flags */
 #define MF_INDIRECT 0x01			/* Indirect offset (mo) */
 	/* the test (d)ata itself */
 	union {
