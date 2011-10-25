@@ -107,15 +107,6 @@ struct df_match {
 	/* XXX maybe instance in future ? */
 };
 
-#define DF_TEST_PFX_EQ			(1 << 0)
-#define DF_TEST_PFX_LT			(1 << 1)
-#define DF_TEST_PFX_GT			(1 << 2)
-#define DF_TEST_PFX_BSET		(1 << 3)
-#define DF_TEST_PFX_BCLR		(1 << 4)
-#define DF_TEST_PFX_BNEG		(1 << 5)
-#define DF_TEST_PFX_X			(1 << 6)
-#define DF_TEST_PFX_NEG			(1 << 7)
-
 /*
  * The parser state, set every time we parse a new line.
  */
@@ -131,4 +122,56 @@ struct df_parser {
 	enum df_magic_test	 mt; 		/* Magic type */
 	u_int 			 mflags;	/* Magic flags */
 #define MF_INDIRECT 0x01			/* Indirect offset (mo) */
+	/* the test (d)ata itself */
+	union {
+		u_int8_t	 d_byte;
+		/* native endian */
+		int16_t		 d_short;
+		int32_t		 d_long;
+		int64_t		 d_quad;
+		float		 d_float;
+		double		 d_double;
+		char		*d_string;
+		char		*d_pstring;
+		int32_t		 d_date;
+		int64_t		 d_qdate;
+		int32_t		 d_ldate;
+		int64_t		 d_qldate;
+		/* big endian */
+		int16_t		 d_beshort;
+		int32_t		 d_belong;
+		int64_t		 d_bequad;
+		float		 d_befloat;
+		double		 d_bedouble;
+		int32_t		 d_bedate;
+		int64_t		 d_beqdate;
+		int32_t		 d_beldate;
+		int64_t		 d_beqldate;
+		char		*d_bestring16;
+		/* little endian */
+		int16_t		 d_leshort;
+		int32_t		 d_lelong;
+		int64_t		 d_lequad;
+		float		 d_lefloat;
+		double		 d_ledouble;
+		int32_t		 d_ledate;
+		int64_t		 d_leqdate;
+		int32_t		 d_leldate;
+		int64_t		 d_leqldate;
+		char		*d_lestring16;
+		/* middle endian */
+                int32_t		 melong;
+		int16_t		 medate;
+	       	int32_t		 meldate;
+	};
+	/* flags, as indicated by test prefixes */
+#define DF_TEST_PFX_EQ			(1 << 0)
+#define DF_TEST_PFX_LT			(1 << 1)
+#define DF_TEST_PFX_GT			(1 << 2)
+#define DF_TEST_PFX_BSET		(1 << 3)
+#define DF_TEST_PFX_BCLR		(1 << 4)
+#define DF_TEST_PFX_BNEG		(1 << 5)
+#define DF_TEST_PFX_X			(1 << 6)
+#define DF_TEST_PFX_NEG			(1 << 7)
+	u_int32_t		  flags;
 };
