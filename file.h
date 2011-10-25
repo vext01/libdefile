@@ -160,9 +160,9 @@ struct df_parser {
 		int64_t		 d_leqldate;
 		char		*d_lestring16;
 		/* middle endian */
-                int32_t		 melong;
+		int32_t		 melong;
 		int16_t		 medate;
-	       	int32_t		 meldate;
+		int32_t		 meldate;
 	};
 	/* flags, as indicated by test prefixes */
 #define DF_TEST_PFX_EQ			(1 << 0)
@@ -177,12 +177,14 @@ struct df_parser {
 };
 
 #ifdef DEBUG
-#define DPRINTF(lvl, args...)	do { \
-	if (df_debug >= lvl) { \
-		fprintf(stderr, "DEBUG (%s:%d): ", __FILE__, __LINE__); \
-		fprintf(stderr, args); \
-		fprintf(stderr, "\n"); \
-	} } while(0);
+#define DPRINTF(lvl, args...)						\
+	do {								\
+		if (df_debug >= lvl) {					\
+			fprintf(stderr, "%s:%d: ", __FILE__, __LINE__); \
+			fprintf(stderr, args);				\
+			fprintf(stderr, "\n");				\
+		}							\
+	} while(0);
 #else
 #define DPRINTF(fmt, args...)
 	/* NOP */
