@@ -554,8 +554,6 @@ main(int argc, char **argv)
 	if (argc == 0)
 		usage();
 
-	DPRINTF(1, "This is a test");
-
 	df_state_init_files(argc, argv);
 	TAILQ_FOREACH(df, &df_state.df_files, entry)
 		(void)df_check(df);
