@@ -45,6 +45,17 @@ extern char	*__progname;
 struct df_state  df_state;
 int		 df_debug = 0;
 
+char *
+xstrdup(char *old)
+{
+	char	*p;
+
+	if ((p = strdup(old)) == NULL)
+		err(1, "failed to alloc");
+
+	return (p);
+}
+
 void __dead
 usage(void)
 {
@@ -514,13 +525,15 @@ main(int argc, char **argv)
 	struct df_file	*df;
 	int		 ch;
 
+	df_state.magic_path = xstrdup(MAGIC);
+
 	while ((ch = getopt(argc, argv, "df:Ls")) != -1) {
 		switch (ch) {
 		case 'd':
 			df_debug++;
 			break;
 		case 'f':
-			df_state.magic_path = optarg;
+			df_state.magic_path = xstrdup(optarg);
 			break;
 		case 's':	/* Treat file devices as ordinary files */
 			df_state.check_flags |= CHK_NOSPECIAL;
@@ -544,3 +557,5 @@ main(int argc, char **argv)
 
 	return (EXIT_SUCCESS);
 }
+
+
