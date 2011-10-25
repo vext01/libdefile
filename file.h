@@ -175,3 +175,11 @@ struct df_parser {
 #define DF_TEST_PFX_NEG			(1 << 7)
 	u_int32_t		  flags;
 };
+
+#define DERRX(eval, fmt, args...)	do { \
+	errx(eval, "%s:%d in %s(): " fmt, __FILE__, __LINE__, __func__, args); \
+	} while(0);
+
+#define DERR(eval, fmt, args...)	do { \
+	err(eval, "%s:%d in %s(): " fmt, __FILE__, __LINE__, __func__, args); \
+	} while(0);
