@@ -1,5 +1,6 @@
 # $OpenBSD$ 
 
+NOMAN=Yes
 MAGIC=          /etc/magic
 MAGICOWN=       root
 MAGICGRP=       bin
@@ -14,27 +15,9 @@ CFLAGS+=        -Wshadow -Wpointer-arith -Wcast-qual
 CFLAGS+=        -Wsign-compare
 #MAN=            file.1 magic.5
 
-#CLEANFILES+=    magic post-magic
-all:            file
+LDADD+=         -lutil
+DPADD+=         ${LIBUTIL}
 
-#MAG1=           $(.CURDIR)/magdir/Header\
-#                $(.CURDIR)/magdir/Localstuff\
-#                $(.CURDIR)/magdir/OpenBSD
-#MAGFILES=       $(.CURDIR)/magdir/[0-9a-z]*
-
-#post-magic:     $(MAGFILES)
-#        for i in ${.ALLSRC:N*.orig}; \
-#        do \
-#                echo $$i; \
-#        done|sort|xargs -n 1024 cat > $(.TARGET)
-#
-#magic:          $(MAG1) post-magic
-#        cat ${MAG1} post-magic > $(.TARGET)
-
-
-#afterinstall:
-#        ${INSTALL} ${INSTALL_COPY} -o $(MAGICOWN) -g $(MAGICGRP) -m $(MAGICMODE) magic \
-#                $(DESTDIR)$(MAGIC)
 
 .include <bsd.prog.mk>
 

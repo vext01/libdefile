@@ -25,8 +25,9 @@
 struct df_file {
 	TAILQ_ENTRY(df_file) entry;
 	TAILQ_HEAD(, df_match) df_matches;
-	FILE	*file;			/* File handler */
-	char	 filename[MAXPATHLEN];	/* File path */
+	FILE		*file;			/* File handler */
+	char		 filename[MAXPATHLEN];	/* File path */
+	struct stat	 sb;			/* File stat */
 };
 
 /*
@@ -34,6 +35,7 @@ struct df_file {
  */
 struct df_state {
 	TAILQ_HEAD(, df_file)	 df_files;	/* All our jobs */
+	const char		*magic_path;	/* Magic file path */
 	FILE			*magic_file;	/* Magic file */
 	int			 magic_line;	/* Where we are in magic db */
 	u_int	 		 check_flags;	/* Checking knobs */
@@ -42,68 +44,50 @@ struct df_state {
 };
 
 /*
- * A magic field type.
- * This corresponds to the first field in the magic db file.
+ * A magic test type.
+ * This corresponds to the second field in the magic db file.
  * It indicates how the comparison/search should be performed
  */
-enum df_magic_field_type {
-	DF_MF_BYTE,
-	DF_MF_SHORT,
-	DF_MF_LONG,
-	DF_MF_QUAD,
-	DF_MF_FLOAT,
-	DF_MF_DOUBLE,
-	DF_MF_STRING,
-	DF_MF_PSTRING,
-	DF_MF_DATE,
-	DF_MF_QDATE,
-	DF_MF_LDATE,
-	DF_MF_QLDATE,
-	DF_MF_BESHORT,
-	DF_MF_BELONG,
-	DF_MF_BEQUAD,
-	DF_MF_BEFLOAT,
-	DF_MF_BEDOUBLE,
-	DF_MF_BEDATE,
-	DF_MF_BEQDATE,
-	DF_MF_BELDATE,
-	DF_MF_BEQLDATE,
-	DF_MF_BESTRING16,
-	DF_MF_LESHORT,
-	DF_MF_LELONG,
-	DF_MF_LEQUAD,
-	DF_MF_LEFLOAT,
-	DF_MF_LEDOUBLE,
-	DF_MF_LEDATE,
-	DF_MF_LEQDATE,
-	DF_MF_LELDATE,
-	DF_MF_LEQLDATE,
-	DF_MF_LESTRING16,
-	DF_MF_MELONG,
-	DF_MF_MEDATE,
-	DF_MF_MELDATE,
-	DF_MF_REGEX,
-	DF_MF_SEARCH,
-	DF_MF_DEFAULT
-};
-
-/*
- * Represents a field if a potential match from the magic database
- */
-struct df_magic_match_field {
-	TAILQ_ENTRY(df_magic_match_field)	entry;
-	u_int64_t			 offset;      /* offset to test at */
-	enum df_magic_field_type	 type;	      /* what kind of a test */
-	char				*test;	      /* test data itself */
-	int				 test_level;  /* ie. > before offset */
-	char				*mime;        /* mime type */
-};
-
-/*
- * Represents a potential match from the magic database
- */
-struct df_magic_match {
-	TAILQ_HEAD(, df_magic_match_field)	df_fields;
+enum df_magic_test {
+	MT_UNKNOWN,
+	MT_BYTE,
+	MT_SHORT,
+	MT_LONG,
+	MT_QUAD,
+	MT_FLOAT,
+	MT_DOUBLE,
+	MT_STRING,
+	MT_PSTRING,
+	MT_DATE,
+	MT_QDATE,
+	MT_LDATE,
+	MT_QLDATE,
+	MT_BESHORT,
+	MT_BELONG,
+	MT_BEQUAD,
+	MT_BEFLOAT,
+	MT_BEDOUBLE,
+	MT_BEDATE,
+	MT_BEQDATE,
+	MT_BELDATE,
+	MT_BEQLDATE,
+	MT_BESTRING16,
+	MT_LESHORT,
+	MT_LELONG,
+	MT_LEQUAD,
+	MT_LEFLOAT,
+	MT_LEDOUBLE,
+	MT_LEDATE,
+	MT_LEQDATE,
+	MT_LELDATE,
+	MT_LEQLDATE,
+	MT_LESTRING16,
+	MT_MELONG,
+	MT_MEDATE,
+	MT_MELDATE,
+	MT_REGEX,
+	MT_SEARCH,
+	MT_DEFAULT
 };
 
 /*
@@ -121,4 +105,21 @@ struct df_match {
 	char		 desc[256]; 	/* string represtation */
 	enum match_class class;		/* df_match_class */
 	/* XXX maybe instance in future ? */
+};
+
+/*
+ * The parser state, set every time we parse a new line.
+ */
+struct df_parser {
+	FILE			*magic_file;
+	size_t			 lineno; 	/* Current line number */
+	char			*line;		/* Current linet */
+	int			 level; 	/* Current parser level */
+	char			*argv[5];	/* The broken tokens */
+	u_long			 mo;		/* Magic offset */
+	enum df_magic_test	 mo_itype; 	/* Indirect type if MF_INDIRECT */
+	int			 ml; 		/* Magic level */
+	enum df_magic_test	 mt; 		/* Magic type */
+	u_int 			 mflags;	/* Magic flags */
+#define MF_INDIRECT 0x01			/* Indirect offset (mo) */
 };

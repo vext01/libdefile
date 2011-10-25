@@ -26,22 +26,20 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <util.h>
 
 #include "file.h"
 
 void __dead		 usage(void);
 struct df_file		*df_open(const char *);
 void			 df_state_init_files(int, char **);
-int			 df_check_match(struct df_file *);
-int			 df_check_match_fs(struct df_file *);
-int			 df_check_match_magic(struct df_file *);
+int			 df_check(struct df_file *);
+int			 df_check_fs(struct df_file *);
+int			 df_check_magic(struct df_file *);
 struct df_match		*df_match_add(struct df_file *, enum match_class,
     const char *, ...);
-
-/* prototype magic matching */
-struct df_magic_match		*df_next_magic_candidate(void);
-struct df_magic_match_field	*df_parse_magic_line(char *line,
-    struct df_magic_match_field *last_dm);
+int			 dp_prepare(struct df_parser *);
+int			 dp_prepare_mo(struct df_parser *, const char *);
 
 extern char	*__progname;
 struct df_state df_state;
@@ -49,7 +47,8 @@ struct df_state df_state;
 void __dead
 usage(void)
 {
-	fprintf(stderr, "usage: [-Ls] %s file [file...]\n", __progname);
+	fprintf(stderr, "usage: [-Ls] [-f magic] %s file [file...]\n",
+	    __progname);
 	exit(1);
 }
 
@@ -72,9 +71,9 @@ df_state_init_files(int argc, char **argv)
 		TAILQ_INSERT_TAIL(&df_state.df_files, df, entry);
 	}
 	/* XXX we can't bail out, other classes may match */
-	df_state.magic_file = fopen(MAGIC, "r");
+	df_state.magic_file = fopen(df_state.magic_path, "r");
 	if (df_state.magic_file == NULL)
-		err(1, "df_open: %s", MAGIC);
+		err(1, "df_open: %s", df_state.magic_path);
 }
 
 /* Lib */
@@ -109,142 +108,78 @@ err:
 	return (NULL);
 }
 
-#define DF_NUM_MAGIC_FIELDS			4
-#define DF_MIME_TOKEN				"!:mime"
-
-/*
- * Jam a test into a struct
- */
-struct df_magic_match_field *
-df_parse_magic_line(char *line, struct df_magic_match_field *last_dmf)
-{
-	char			*tokens[DF_NUM_MAGIC_FIELDS] = {0, 0, 0, 0};
-	char			*nxt = line;
-	int			 n_tok = 0;
-	struct df_magic_match_field	*dmf;
-
-	while ((n_tok < DF_NUM_MAGIC_FIELDS) && (nxt != NULL))
-		tokens[n_tok++] = strsep(&nxt, " \t");
-
-	if (n_tok < DF_NUM_MAGIC_FIELDS - 2) /* last 2 fields optional */
-		errx(1, "%s: short field count at line %d", MAGIC,
-		    df_state.magic_line);
-
-	/*
-	 * if it was a mime line, we don't make a new record, but append
-	 * mime type info to the last field we found. In this case we return
-	 * the same pointer as before to inidicate this was teh case.
-	 */
-	if (strncmp(tokens[1], DF_MIME_TOKEN, strlen(DF_MIME_TOKEN)) == 0) {
-		if (last_dmf == NULL)
-			errx(1, "can't append mime info to nothing!");
-
-		last_dmf->mime = strdup(tokens[2]);
-		return (last_dmf);
-	}
-
-	dmf = calloc(1, sizeof(*dmf));
-	if (dmf == NULL)
-		err(1, "calloc");
-
-	/* XXX populate */
-
-	return (dmf);
-}
-
-/*
- * parses the next potential match from magic db and returns in a struct
- */
-#define DF_MAX_MAGIC_LINE		256
-struct df_magic_match *
-df_next_magic_candidate(void)
-{
-	char			 line[DF_MAX_MAGIC_LINE];
-	int			 first_rec = 1;
-	struct df_magic_match	*dm;
-	struct df_magic_match_field	*dmf, *last_dmf = NULL;
-
-	dm = calloc(1, sizeof(*dm));
-	if (!dm)
-		err(1, "df_next_magic_candidate: calloc");
-	TAILQ_INIT(&dm->df_fields);
-
-	while (1) {
-		if (fgets(line, DF_MAX_MAGIC_LINE,df_state.magic_file) == NULL)
-			break;
-
-		df_state.magic_line++;
-
-		/* skip blank lines and comments */
-		if ((strlen(line) <= 1) || (line[0] == '#'))
-			continue;
-
-		if ((!first_rec) && (line[0] != '>')) {
-			/* woops, beginning of next match, go back */
-			fseek(df_state.magic_file, -(strlen(line)), SEEK_CUR);
-			break;
-		}
-
-		/* XXX field struct into dm */
-		dmf = df_parse_magic_line(line, last_dmf);
-
-		if (dmf != last_dmf)
-			TAILQ_INSERT_TAIL(&dm->df_fields, dmf, entry);
-
-		last_dmf = dmf;
-		first_rec = 0;
-	}
-
-	if (feof(df_state.magic_file)) {
-		free(dm);
-		return (NULL); /* no more */
-	}
-
-	if (ferror(df_state.magic_file))
-		err(1, "%s", __func__);
-
-	return (dm);
-}
-
 /*
  * Search for matches in magic
  */
 int
-df_check_match_magic(struct df_file *df)
+df_check_magic(struct df_file *df)
 {
-	int			matches = 0;
-	struct df_magic_match	*dm;
+	size_t linelen;
+	char *line, *p, **ap;
+	struct df_parser dp;
 
-	if (!df_state.magic_file)
+	/* No magic file, so no matches */
+	if (df_state.magic_file == NULL)
 		return (0);
-
+	/* If file is empty, no matches */
+	if (df->sb.st_size == 0)
+		return (0);
+	/* We'll reparse the file */
 	rewind(df_state.magic_file);
-	df_state.magic_line = 1;
+	bzero(&dp, sizeof(dp));
+	/* Parser state */
+	dp.magic_file = df_state.magic_file;
+	dp.level      = -1;
+	dp.lineno     = 0;
+	/* Get a line */
+	while (!feof(df_state.magic_file)) {
+		if ((line = fparseln(df_state.magic_file, &linelen, &dp.lineno,
+		    NULL, 0)) == NULL) {
+			if (ferror(df_state.magic_file)) {
+				warn("magic file");
+				return (-1);
+			} else
+				continue;
+		}
+		p = line;
+		if (*p == 0)
+			goto nextline;
+		/* Break The Line !, Guano Apes rules */
+		for (ap = dp.argv; ap < &dp.argv[3] &&
+			 (*ap = strsep(&p, " \t")) != NULL;) {
+			if (**ap != 0)
+				ap++;
+		}
+		*ap	   = NULL;
+		/* Get the remainder of the line */
+		dp.argv[3] = p;
+		dp.argv[4] = NULL;
+		/* Convert to something meaningfull */
+		if (dp_prepare(&dp) == -1)
+			goto nextline;
 
-	while((dm = df_next_magic_candidate()) != NULL) {
-		/* decide if it is a match XXX */
-		free(dm); /* XXX and the rest */
+	nextline:
+		free(line);
 	}
 
-	return (matches);
+	return (0);
 }
 
 /*
  * Search for matches in filesystem goo.
  */
 int
-df_check_match_fs(struct df_file *df)
+df_check_fs(struct df_file *df)
 {
-	struct stat	 sb;
 	char		 buf[MAXPATHLEN];
 	int		 n;
 	struct df_file	*df2;
 
-	if (lstat(df->filename, &sb) == -1) {
+	if (lstat(df->filename, &df->sb) == -1) {
 		warn("stat: %s", df->filename);
 		return (-1);
 	}
-	if (S_ISLNK(sb.st_mode)) {
+	if (S_ISLNK(df->sb.st_mode)) {
 		bzero(buf, sizeof(buf));
 		n = readlink(df->filename, buf, sizeof(buf));
 		if (n == -1) {
@@ -263,35 +198,35 @@ df_check_match_fs(struct df_file *df)
 		df_match_add(df, MC_FS, "symbolic link to `%s'", buf);
 		return (0);
 	}
-	if (sb.st_mode & S_ISUID)
+	if (df->sb.st_mode & S_ISUID)
 		df_match_add(df, MC_FS, "setuid");
-	if (sb.st_mode & S_ISGID)
+	if (df->sb.st_mode & S_ISGID)
 		df_match_add(df, MC_FS, "setgid");
-	if (sb.st_mode & S_ISVTX)
+	if (df->sb.st_mode & S_ISVTX)
 		df_match_add(df, MC_FS, "sticky");
-	if (S_ISDIR(sb.st_mode))
+	if (S_ISDIR(df->sb.st_mode))
 		df_match_add(df, MC_FS, "directory");
 	if (df_state.check_flags & CHK_NOSPECIAL)
 		goto ordinary;
-	if (S_ISCHR(sb.st_mode)) {
+	if (S_ISCHR(df->sb.st_mode)) {
 		df_match_add(df, MC_FS, "character special");
 		return (0);
 	}
-	if (S_ISBLK(sb.st_mode)) {
+	if (S_ISBLK(df->sb.st_mode)) {
 		df_match_add(df, MC_FS, "block special");
 		return (0);
 	}
-	if (S_ISFIFO(sb.st_mode)) {
+	if (S_ISFIFO(df->sb.st_mode)) {
 		df_match_add(df, MC_FS, "fifo (named pipe)");
 		return (0);
 	}
 	/* TODO DOOR ? */
-	if (S_ISSOCK(sb.st_mode)) {
+	if (S_ISSOCK(df->sb.st_mode)) {
 		df_match_add(df, MC_FS, "socket");
 		return (0);
 	}
 ordinary:
-	if (sb.st_size == 0)
+	if (df->sb.st_size == 0)
 		df_match_add(df, MC_FS, "empty");
 
 	return (0);
@@ -323,12 +258,13 @@ df_match_add(struct df_file *df, enum match_class mc, const char *desc, ...)
  * Check
  */
 int
-df_check_match(struct df_file *df)
+df_check(struct df_file *df)
 {
 	struct df_match *dm;
 
-	(void)df_check_match_fs(df);
-	(void)df_check_match_magic(df);
+	if (df_check_fs(df) == -1)
+		return (-1);
+	(void)df_check_magic(df);
 
 	if (!TAILQ_EMPTY(&df->df_matches))
 		printf("%s: ", df->filename);
@@ -340,14 +276,246 @@ df_check_match(struct df_file *df)
 	return (0);
 }
 
+/*
+ * Prepare magic offset
+ */
+int
+dp_prepare_mo(struct df_parser *dp, const char *s)
+{
+	char *end = NULL;
+	const char *cp = s;
+	const char *errstr = NULL;
+
+	if (cp == NULL)
+		goto errorinv;
+	/*
+	 * Check for an indirect offset, we're parsing something like:
+	 * (0x3c.l)
+	 * (( x [.[bslBSL]][+-][ y ])
+	 */
+	if (*cp == '(') {
+		if ((end = strchr(cp, ')')) == NULL) {
+			warnx("Unclosed paren at line %zd", dp->lineno);
+			return (-1);
+		}
+		*end = 0;	/* terminate */
+		dp->mflags |= MF_INDIRECT;
+		cp++;		/* Jump over ( */
+		/* If type not specified, assume long */
+		if ((end = strchr(cp, '.')) == NULL)
+			dp->mo_itype = MT_LONG;
+		else {
+			switch (*cp) {
+			case 'c':
+			case 'b':
+			case 'C':
+			case 'B':
+				dp->mo_itype = MT_BYTE;
+				break;
+			case 'h':
+			case 's':
+				dp->mo_itype = MT_LESHORT;
+				break;
+			case 'l':
+				dp->mo_itype = MT_LELONG;
+				break;
+			case 'S':
+				dp->mo_itype = MT_BESHORT;
+				break;
+			case 'L':
+				dp->mo_itype = MT_BELONG;
+				break;
+			case 'e':
+			case 'f':
+			case 'g':
+				dp->mo_itype = MT_LEDOUBLE;
+				break;
+			case 'E':
+			case 'F':
+			case 'G':
+				dp->mo_itype = MT_BEDOUBLE;
+				break;
+			default:
+				warnx("indirect offset type `%c' "
+				    "invalid at line %zd", *cp, dp->lineno);
+				return (-1);
+				break; /* NOTREACHED */
+			}
+		}
+	}
+	/* TODO handle negative and octal */
+	if (cp == NULL)
+		goto errorinv;
+	/* Try hex */
+	if (strlen(cp) > 1 && cp[0] == '0' && cp[1] == 'x') {
+		errno = 0;
+		dp->mo = strtoll(cp, NULL, 16);
+		if (errno) {
+			warn("dp_prepare_mo: strtoll: %s "
+			    "line %zd", cp, dp->lineno);
+			return (-1);
+		}
+	}
+	dp->mo = (unsigned long)strtonum("1", 0,
+	    LLONG_MAX, &errstr);
+	if (errstr) {
+		warn("dp_prepare_mo: strtonum %s at line %zd",
+		    cp, dp->lineno);
+		return (-1);
+	}
+
+	return (0);
+
+errorinv:
+	warnx("dp_prepare_mo: Invalid offset at line %zd",
+	    dp->lineno);
+
+	return (-1);
+}
+/*
+ * Bake dp into something usable.
+ */
+int
+dp_prepare(struct df_parser *dp)
+{
+	char *cp, *mask;
+	u_int64_t maskval;
+
+	/* Reset */
+	dp->ml = 0;
+	dp->mo = 0;
+	dp->mt = MT_UNKNOWN;
+	/* First analyze level */
+	if (*dp->argv[0] == '0')
+		dp->ml = 0;
+	else if (*dp->argv[0] == '>') {
+		cp = dp->argv[0];
+		/* Count the > */
+		while (cp && *cp == '>') {
+			dp->ml++;
+			cp++;
+		}
+		if (dp_prepare_mo(dp, cp) == -1)
+			return (-1);
+	} else {
+		warnx("dp_prepare: unexpected %s", dp->argv[0]);
+		return (-1);
+	}
+	/* Second, analyze test type */
+	/* Split mask and test type first */
+	cp   = dp->argv[1];
+	mask = strchr(cp, ':');
+	if (mask != NULL) {
+		*mask++ = 0;
+		/* Octa TODO */
+		/* Hexa */
+		if (strlen(mask) > 1 && mask[0] == '0' && mask[1] == 'x') {
+			errno = 0;
+			maskval = strtoll(mask, NULL, 16);
+			if (errno) {
+				warn("dp_prepare: %s", mask);
+				return (-1);
+			}
+		}
+		/* Decimal TODO */
+	}
+	if (strcmp("byte", cp) == 0)
+		dp->mt = MT_BYTE;
+	else if (strcmp("short", cp) == 0)
+		dp->mt = MT_SHORT;
+	else if (strcmp("long", cp) == 0)
+		dp->mt = MT_LONG;
+	else if (strcmp("QUAD", cp) == 0)
+		dp->mt = MT_QUAD;
+	else if (strcmp("float", cp) == 0)
+		dp->mt = MT_FLOAT;
+	else if (strcmp("double", cp) == 0)
+		dp->mt = MT_DOUBLE;
+	else if (strcmp("string", cp) == 0)
+		dp->mt = MT_STRING;
+	else if (strcmp("pstring", cp) == 0)
+		dp->mt = MT_PSTRING;
+	else if (strcmp("date", cp) == 0)
+		dp->mt = MT_DATE;
+	else if (strcmp("qdate", cp) == 0)
+		dp->mt = MT_QDATE;
+	else if (strcmp("ldate", cp) == 0)
+		dp->mt = MT_LDATE;
+	else if (strcmp("qldate", cp) == 0)
+		dp->mt = MT_QLDATE;
+	else if (strcmp("beshort", cp) == 0)
+		dp->mt = MT_BESHORT;
+	else if (strcmp("belong", cp) == 0)
+		dp->mt = MT_BELONG;
+	else if (strcmp("bequad", cp) == 0)
+		dp->mt = MT_BEQUAD;
+	else if (strcmp("befloat", cp) == 0)
+		dp->mt = MT_BEFLOAT;
+	else if (strcmp("bedouble", cp) == 0)
+		dp->mt = MT_BEDOUBLE;
+	else if (strcmp("bedate", cp) == 0)
+		dp->mt = MT_BEDATE;
+	else if (strcmp("beqdate", cp) == 0)
+		dp->mt = MT_BEQDATE;
+	else if (strcmp("beldate", cp) == 0)
+		dp->mt = MT_BELDATE;
+	else if (strcmp("beqldate", cp) == 0)
+		dp->mt = MT_BEQLDATE;
+	else if (strcmp("bestring16", cp) == 0)
+		dp->mt = MT_BESTRING16;
+	else if (strcmp("leshort", cp) == 0)
+		dp->mt = MT_LESHORT;
+	else if (strcmp("lelong", cp) == 0)
+		dp->mt = MT_LELONG;
+	else if (strcmp("lequad", cp) == 0)
+		dp->mt = MT_LEQUAD;
+	else if (strcmp("lefloat", cp) == 0)
+		dp->mt = MT_LEFLOAT;
+	else if (strcmp("ledouble", cp) == 0)
+		dp->mt = MT_LEDOUBLE;
+	else if (strcmp("ledate", cp) == 0)
+		dp->mt = MT_LEDATE;
+	else if (strcmp("leqdate", cp) == 0)
+		dp->mt = MT_LEQDATE;
+	else if (strcmp("leldate", cp) == 0)
+		dp->mt = MT_LELDATE;
+	else if (strcmp("leqldate", cp) == 0)
+		dp->mt = MT_LEQLDATE;
+	else if (strcmp("lestring16", cp) == 0)
+		dp->mt = MT_LESTRING16;
+	else if (strcmp("melong", cp) == 0)
+		dp->mt = MT_MELONG;
+	else if (strcmp("medate", cp) == 0)
+		dp->mt = MT_MEDATE;
+	else if (strcmp("meldate", cp) == 0)
+		dp->mt = MT_MELDATE;
+	else if (strcmp("regex", cp) == 0)
+		dp->mt = MT_REGEX;
+	else if (strcmp("search", cp) == 0)
+		dp->mt = MT_SEARCH;
+	else if (strcmp("default", cp) == 0)
+		dp->mt = MT_DEFAULT;
+	/* Check if we found something. */
+	if (dp->mt == MT_UNKNOWN) {
+		warnx("dp_prepare: Uknown magic type %s at line %zd",
+		    cp, dp->lineno);
+		return (-1);
+	}
+
+	return (0);
+}
+
 int
 main(int argc, char **argv)
 {
 	struct df_file	*df;
 	int		 ch;
 
-	while ((ch = getopt(argc, argv, "Ls")) != -1) {
+	while ((ch = getopt(argc, argv, "f:Ls")) != -1) {
 		switch (ch) {
+		case 'f':
+			df_state.magic_path = optarg;
+			break;
 		case 's':	/* Treat file devices as ordinary files */
 			df_state.check_flags |= CHK_NOSPECIAL;
 			break;
@@ -366,7 +534,7 @@ main(int argc, char **argv)
 
 	df_state_init_files(argc, argv);
 	TAILQ_FOREACH(df, &df_state.df_files, entry)
-		df_check_match(df);
+		(void)df_check(df);
 
 	return (EXIT_SUCCESS);
 }
