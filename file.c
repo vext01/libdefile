@@ -30,6 +30,7 @@
 
 #include "file.h"
 
+char			*xstrdup(char *old);
 void __dead		 usage(void);
 struct df_file		*df_open(const char *);
 void			 df_state_init_files(int, char **);
@@ -78,16 +79,15 @@ df_state_init_files(int argc, char **argv)
 
 	TAILQ_INIT(&df_state.df_files);
 	for (i = 0; i < argc; i++) {
-		/* XXX we can't bail out, fs may match  */
 		if ((df = df_open(argv[i])) == NULL)
-			err(1, "df_open: %s", argv[i]);
-		TAILQ_INSERT_TAIL(&df_state.df_files, df, entry);
+			warn("df_open: %s", argv[i]);
+		else
+			TAILQ_INSERT_TAIL(&df_state.df_files, df, entry);
 	}
 
-	/* XXX we can't bail out, other classes may match */
 	df_state.magic_file = fopen(df_state.magic_path, "r");
 	if (df_state.magic_file == NULL)
-		err(1, "df_open: %s", df_state.magic_path);
+		warn("df_open: %s", df_state.magic_path);
 }
 
 /* Lib */
