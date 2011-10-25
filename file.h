@@ -178,10 +178,11 @@ struct df_parser {
 
 #ifdef DEBUG
 #define DPRINTF(lvl, args...)	do { \
-	if (df_debug >= lvl) \
-		fprintf(stderr, "DEBUG" #lvl ": "  args); \
+	if (df_debug >= lvl) { \
+		fprintf(stderr, "DEBUG (%s:%d): ", __FILE__, __LINE__); \
+		fprintf(stderr, args); \
 		fprintf(stderr, "\n"); \
-	} while(0);
+	} } while(0);
 #else
 #define DPRINTF(fmt, args...)
 	/* NOP */
