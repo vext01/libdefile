@@ -525,7 +525,7 @@ main(int argc, char **argv)
 	struct df_file	*df;
 	int		 ch;
 
-	df_state.magic_path = xstrdup(MAGIC);
+	df_state.magic_path = MAGIC;
 
 	while ((ch = getopt(argc, argv, "df:Ls")) != -1) {
 		switch (ch) {
@@ -533,7 +533,7 @@ main(int argc, char **argv)
 			df_debug++;
 			break;
 		case 'f':
-			df_state.magic_path = xstrdup(optarg);
+			df_state.magic_path = optarg;
 			break;
 		case 's':	/* Treat file devices as ordinary files */
 			df_state.check_flags |= CHK_NOSPECIAL;
