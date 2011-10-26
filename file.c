@@ -43,6 +43,7 @@ struct df_match		*df_match_add(struct df_file *, enum match_class,
 int			 dp_prepare(struct df_parser *);
 int			 dp_prepare_mo(struct df_parser *, const char *);
 
+extern char	*malloc_options;
 extern char	*__progname;
 struct df_state  df_state;
 int		 df_debug;
@@ -508,6 +509,9 @@ main(int argc, char **argv)
 	struct df_file	*df;
 	int		 ch;
 
+#ifdef DEBUG
+	malloc_options = "AFGJPXS";
+#endif
 	df_state.magic_path = MAGIC;
 
 	while ((ch = getopt(argc, argv, "df:Ls")) != -1) {
