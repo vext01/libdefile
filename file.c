@@ -45,7 +45,7 @@ int			 dp_prepare_mo(struct df_parser *, const char *);
 
 extern char	*__progname;
 struct df_state  df_state;
-int		 df_debug = 0;
+int		 df_debug;
 
 struct {
 	int		 mt;
