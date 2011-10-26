@@ -30,8 +30,8 @@
 
 #include "file.h"
 
-char			*xstrdup(char *old);
 void __dead		 usage(void);
+char			*xstrdup(char *old);
 int			 str2mt(const char *);
 struct df_file		*df_open(const char *);
 void			 df_state_init_files(int, char **);
@@ -94,6 +94,15 @@ struct {
 	{ -1,		NULL },
 };
 
+void __dead
+usage(void)
+{
+	/* XXX the more '-d' specified, the more verbose. How to express this in usage()? */
+	fprintf(stderr, "usage: [-dLs] [-f magic] %s file [file...]\n",
+	    __progname);
+	exit(1);
+}
+
 char *
 xstrdup(char *old)
 {
@@ -103,15 +112,6 @@ xstrdup(char *old)
 		err(1, "failed to alloc");
 
 	return (p);
-}
-
-void __dead
-usage(void)
-{
-	/* XXX the more '-d' specified, the more verbose. How to express this in usage()? */
-	fprintf(stderr, "usage: [-dLs] [-f magic] %s file [file...]\n",
-	    __progname);
-	exit(1);
 }
 
 int
