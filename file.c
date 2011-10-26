@@ -52,46 +52,46 @@ struct {
 	int		 mt;
 	const char	*str;
 } mt_table[] = {
-	{ MT_UNKNOWN,	"unknown" }, 
-	{ MT_BYTE,	"byte" }, 
-	{ MT_SHORT,	"short" }, 
-	{ MT_LONG,	"long" }, 
-	{ MT_QUAD,	"quad" }, 
-	{ MT_FLOAT,	"float" }, 
-	{ MT_DOUBLE,	"double" }, 
-	{ MT_STRING,	"string" }, 
-	{ MT_PSTRING,	"pstring" }, 
-	{ MT_DATE,	"date" }, 
-	{ MT_QDATE,	"qdate" }, 
-	{ MT_LDATE,	"ldate" }, 
-	{ MT_QLDATE,	"qldate" }, 
-	{ MT_BESHORT,	"beshort" }, 
-	{ MT_BELONG,	"belong" }, 
-	{ MT_BEQUAD,	"bequad" }, 
-	{ MT_BEFLOAT,	"befloat" }, 
-	{ MT_BEDOUBLE,	"bedouble" }, 
-	{ MT_BEDATE,	"bedate" }, 
-	{ MT_BEQDATE,	"beqdate" }, 
-	{ MT_BELDATE,	"beldate" }, 
-	{ MT_BEQLDATE,	"beqldate" }, 
-	{ MT_BESTRING16,"bestring16" }, 
-	{ MT_LESHORT,	"leshort" }, 
-	{ MT_LELONG,	"lelong" }, 
-	{ MT_LEQUAD,	"lequad" }, 
-	{ MT_LEFLOAT,	"lefloat" }, 
-	{ MT_LEDOUBLE,	"ledouble" }, 
-	{ MT_LEDATE,	"ledate" }, 
-	{ MT_LEQDATE,	"leqdate" }, 
-	{ MT_LELDATE,	"leldate" }, 
-	{ MT_LEQLDATE,	"leqldate" }, 
-	{ MT_LESTRING16,"lestring16" }, 
-	{ MT_MELONG,	"melong" }, 
-	{ MT_MEDATE,	"medate" }, 
-	{ MT_MELDATE,	"meldate" }, 
-	{ MT_REGEX,	"regex" }, 
-	{ MT_SEARCH,	"search" }, 
-	{ MT_DEFAULT,	"default" }, 
-	{ -1,		NULL }, 
+	{ MT_UNKNOWN,	"unknown" },
+	{ MT_BYTE,	"byte" },
+	{ MT_SHORT,	"short" },
+	{ MT_LONG,	"long" },
+	{ MT_QUAD,	"quad" },
+	{ MT_FLOAT,	"float" },
+	{ MT_DOUBLE,	"double" },
+	{ MT_STRING,	"string" },
+	{ MT_PSTRING,	"pstring" },
+	{ MT_DATE,	"date" },
+	{ MT_QDATE,	"qdate" },
+	{ MT_LDATE,	"ldate" },
+	{ MT_QLDATE,	"qldate" },
+	{ MT_BESHORT,	"beshort" },
+	{ MT_BELONG,	"belong" },
+	{ MT_BEQUAD,	"bequad" },
+	{ MT_BEFLOAT,	"befloat" },
+	{ MT_BEDOUBLE,	"bedouble" },
+	{ MT_BEDATE,	"bedate" },
+	{ MT_BEQDATE,	"beqdate" },
+	{ MT_BELDATE,	"beldate" },
+	{ MT_BEQLDATE,	"beqldate" },
+	{ MT_BESTRING16,"bestring16" },
+	{ MT_LESHORT,	"leshort" },
+	{ MT_LELONG,	"lelong" },
+	{ MT_LEQUAD,	"lequad" },
+	{ MT_LEFLOAT,	"lefloat" },
+	{ MT_LEDOUBLE,	"ledouble" },
+	{ MT_LEDATE,	"ledate" },
+	{ MT_LEQDATE,	"leqdate" },
+	{ MT_LELDATE,	"leldate" },
+	{ MT_LEQLDATE,	"leqldate" },
+	{ MT_LESTRING16,"lestring16" },
+	{ MT_MELONG,	"melong" },
+	{ MT_MEDATE,	"medate" },
+	{ MT_MELDATE,	"meldate" },
+	{ MT_REGEX,	"regex" },
+	{ MT_SEARCH,	"search" },
+	{ MT_DEFAULT,	"default" },
+	{ -1,		NULL },
 };
 
 char *
@@ -123,7 +123,7 @@ str2mt(const char *str)
 		if (strcmp(str, mt_table[i].str) == 0)
 			return (mt_table[i].mt);
 	}
-	
+
 	return (MT_UNKNOWN);
 }
 /*
@@ -205,6 +205,7 @@ df_check_magic(struct df_file *df)
 	dp.magic_file = df_state.magic_file;
 	dp.level      = -1;
 	dp.lineno     = 0;
+	dp.line	      = NULL;
 	/* Get a line */
 	while (!feof(df_state.magic_file)) {
 		if ((line = fparseln(df_state.magic_file, &linelen, &dp.lineno,
@@ -218,6 +219,8 @@ df_check_magic(struct df_file *df)
 		p = line;
 		if (*p == 0)
 			goto nextline;
+		/* This duplication is only for debugging purposes */
+		dp.line = xstrdup(line);
 		/* Break The Line !, Guano Apes rules */
 		for (ap = dp.argv; ap < &dp.argv[3] &&
 			 (*ap = strsep(&p, " \t")) != NULL;) {
@@ -231,9 +234,11 @@ df_check_magic(struct df_file *df)
 		/* Convert to something meaningfull */
 		if (dp_prepare(&dp) == -1)
 			goto nextline;
-
+		DPRINTF(2, "%s: (ml = %d, mo = %lu (%d))",
+		    dp.line, dp.ml, dp.mo, dp.mo_itype);
 	nextline:
 		free(line);
+		free(dp.line);
 	}
 
 	return (0);
@@ -475,6 +480,8 @@ dp_prepare(struct df_parser *dp)
 		warnx("dp_prepare: unexpected %s", dp->argv[0]);
 		return (-1);
 	}
+
+
 	/* Second, analyze test type */
 	/* Split mask and test type first */
 	cp   = dp->argv[1];
@@ -547,5 +554,3 @@ main(int argc, char **argv)
 
 	return (EXIT_SUCCESS);
 }
-
-
