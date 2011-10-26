@@ -234,8 +234,10 @@ df_check_magic(struct df_file *df)
 		/* Convert to something meaningfull */
 		if (dp_prepare(&dp) == -1)
 			goto nextline;
-		DPRINTF(2, "%s: (ml = %d, mo = %lu (%d))",
-		    dp.line, dp.ml, dp.mo, dp.mo_itype);
+		DPRINTF(2, "%5s (ml = %d mo = %lu)\t%s (mt = %d)\t%10s (TODO)",
+		    dp.argv[0], dp.ml, dp.mo,
+		    dp.argv[1], dp.mt, 
+		    dp.argv[2]);
 	nextline:
 		free(line);
 		free(dp.line);
