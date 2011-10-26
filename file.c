@@ -463,9 +463,11 @@ dp_prepare(struct df_parser *dp)
 	u_int64_t maskval;
 
 	/* Reset */
-	dp->ml = 0;
-	dp->mo = 0;
-	dp->mt = MT_UNKNOWN;
+	dp->ml	     = 0;
+	dp->mo	     = 0;
+	dp->mo_itype = 0;
+	dp->mflags   = 0;
+	dp->mt	     = MT_UNKNOWN;
 	/* First analyze level */
 	if (*dp->argv[0] == '0')
 		dp->ml = 0;
