@@ -8,7 +8,8 @@ MAGICMODE=      444
 
 PROG=           file
 SRCS=           file.c
-CFLAGS+=        -DMAGIC='"$(MAGIC)"' -g -DDEBUG
+CFLAGS+=	-DDEBUG
+CFLAGS+=        -DMAGIC='"$(MAGIC)"' -g
 CFLAGS+=        -Wall -Wstrict-prototypes -Wmissing-prototypes
 CFLAGS+=        -Wmissing-declarations
 CFLAGS+=        -Wshadow -Wpointer-arith -Wcast-qual
