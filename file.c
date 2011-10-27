@@ -41,7 +41,7 @@ int			 df_check_magic(struct df_file *);
 struct df_match		*df_match_add(struct df_file *, enum match_class,
     const char *, ...);
 int			 dp_prepare(struct df_parser *);
-int			 dp_prepare_mo(struct df_parser *, const char *);
+int			 dp_prepare_moffset(struct df_parser *, const char *);
 
 extern char	*malloc_options;
 extern char	*__progname;
@@ -361,7 +361,7 @@ df_check(struct df_file *df)
  * Prepare magic offset
  */
 int
-dp_prepare_mo(struct df_parser *dp, const char *s)
+dp_prepare_moffset(struct df_parser *dp, const char *s)
 {
 	char *end = NULL;
 	const char *cp = s;
@@ -432,7 +432,7 @@ dp_prepare_mo(struct df_parser *dp, const char *s)
 		errno = 0;
 		dp->moffset = strtoll(cp, NULL, 16);
 		if (errno) {
-			warn("dp_prepare_mo: strtoll: %s "
+			warn("dp_prepare_moffset: strtoll: %s "
 			    "line %zd", cp, dp->lineno);
 			return (-1);
 		}
@@ -440,7 +440,7 @@ dp_prepare_mo(struct df_parser *dp, const char *s)
 	dp->moffset = (unsigned long)strtonum(cp, 0,
 	    LLONG_MAX, &errstr);
 	if (errstr) {
-		warn("dp_prepare_mo: strtonum %s at line %zd",
+		warn("dp_prepare_moffset: strtonum %s at line %zd",
 		    cp, dp->lineno);
 		return (-1);
 	}
@@ -448,7 +448,7 @@ dp_prepare_mo(struct df_parser *dp, const char *s)
 	return (0);
 
 errorinv:
-	warnx("dp_prepare_mo: Invalid offset at line %zd",
+	warnx("dp_prepare_moffset: Invalid offset at line %zd",
 	    dp->lineno);
 
 	return (-1);
@@ -479,7 +479,7 @@ dp_prepare(struct df_parser *dp)
 			dp->mlevel++;
 			cp++;
 		}
-		if (dp_prepare_mo(dp, cp) == -1)
+		if (dp_prepare_moffset(dp, cp) == -1)
 			return (-1);
 	} else {
 		warnx("dp_prepare: unexpected %s", dp->argv[0]);
