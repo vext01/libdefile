@@ -117,8 +117,8 @@ struct df_parser {
 	int			 level; 	/* Current parser level */
 	char			*argv[5];	/* The broken tokens */
 	int			 mlevel;	/* Magic level */
-	u_long			 mo;		/* Magic offset */
-	enum df_magic_test	 mo_itype; 	/* Indirect type if MF_INDIRECT */
+	u_long			 moffset;	/* Magic offset */
+	enum df_magic_test	 moffset_itype;	/* Indirect type if MF_INDIRECT */
 	enum df_magic_test	 mt; 		/* Magic type */
 	u_int64_t		 mm;		/* Magic mask */
 	u_int32_t		 mflags;	/* Magic flags */

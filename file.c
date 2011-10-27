@@ -234,8 +234,8 @@ df_check_magic(struct df_file *df)
 		/* Convert to something meaningfull */
 		if (dp_prepare(&dp) == -1)
 			goto nextline;
-		DPRINTF(2, "%5s (mlevel = %d mo = %lu)\t%s (mt = %d)\t%10s (TODO)",
-		    dp.argv[0], dp.mlevel, dp.mo,
+		DPRINTF(2, "%5s (mlevel = %d moffset = %lu)\t%s (mt = %d)\t%10s (TODO)",
+		    dp.argv[0], dp.mlevel, dp.moffset,
 		    dp.argv[1], dp.mt, 
 		    dp.argv[2]);
 	nextline:
@@ -384,37 +384,37 @@ dp_prepare_mo(struct df_parser *dp, const char *s)
 		cp++;		/* Jump over ( */
 		/* If type not specified, assume long */
 		if ((end = strchr(cp, '.')) == NULL)
-			dp->mo_itype = MT_LONG;
+			dp->moffset_itype = MT_LONG;
 		else {
 			switch (*cp) {
 			case 'c':
 			case 'b':
 			case 'C':
 			case 'B':
-				dp->mo_itype = MT_BYTE;
+				dp->moffset_itype = MT_BYTE;
 				break;
 			case 'h':
 			case 's':
-				dp->mo_itype = MT_LESHORT;
+				dp->moffset_itype = MT_LESHORT;
 				break;
 			case 'l':
-				dp->mo_itype = MT_LELONG;
+				dp->moffset_itype = MT_LELONG;
 				break;
 			case 'S':
-				dp->mo_itype = MT_BESHORT;
+				dp->moffset_itype = MT_BESHORT;
 				break;
 			case 'L':
-				dp->mo_itype = MT_BELONG;
+				dp->moffset_itype = MT_BELONG;
 				break;
 			case 'e':
 			case 'f':
 			case 'g':
-				dp->mo_itype = MT_LEDOUBLE;
+				dp->moffset_itype = MT_LEDOUBLE;
 				break;
 			case 'E':
 			case 'F':
 			case 'G':
-				dp->mo_itype = MT_BEDOUBLE;
+				dp->moffset_itype = MT_BEDOUBLE;
 				break;
 			default:
 				warnx("indirect offset type `%c' "
@@ -430,14 +430,14 @@ dp_prepare_mo(struct df_parser *dp, const char *s)
 	/* Try hex */
 	if (strlen(cp) > 1 && cp[0] == '0' && cp[1] == 'x') {
 		errno = 0;
-		dp->mo = strtoll(cp, NULL, 16);
+		dp->moffset = strtoll(cp, NULL, 16);
 		if (errno) {
 			warn("dp_prepare_mo: strtoll: %s "
 			    "line %zd", cp, dp->lineno);
 			return (-1);
 		}
 	}
-	dp->mo = (unsigned long)strtonum(cp, 0,
+	dp->moffset = (unsigned long)strtonum(cp, 0,
 	    LLONG_MAX, &errstr);
 	if (errstr) {
 		warn("dp_prepare_mo: strtonum %s at line %zd",
@@ -463,12 +463,12 @@ dp_prepare(struct df_parser *dp)
 	const char *errstr = NULL;;
 
 	/* Reset */
-	dp->mlevel   = 0;
-	dp->mo	     = 0;
-	dp->mo_itype = 0;
-	dp->mflags   = 0;
-	dp->mt	     = MT_UNKNOWN;
-	dp->mm	     = 0;
+	dp->mlevel	  = 0;
+	dp->moffset	  = 0;
+	dp->moffset_itype = 0;
+	dp->mflags	  = 0;
+	dp->mt		  = MT_UNKNOWN;
+	dp->mm		  = 0;
 	/* First analyze level */
 	if (*dp->argv[0] == '0')
 		dp->mlevel = 0;
