@@ -521,7 +521,7 @@ dp_prepare(struct df_parser *dp)
 
 	return (0);
 badmask:
-	warn("dp_prepare: bad mask %s", mask);
+	warn("dp_prepare: bad mask %s at line %zd", mask, dp->lineno);
 	return (-1);
 }
 
