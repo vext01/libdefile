@@ -234,8 +234,8 @@ df_check_magic(struct df_file *df)
 		/* Convert to something meaningfull */
 		if (dp_prepare(&dp) == -1)
 			goto nextline;
-		DPRINTF(2, "%5s (ml = %d mo = %lu)\t%s (mt = %d)\t%10s (TODO)",
-		    dp.argv[0], dp.ml, dp.mo,
+		DPRINTF(2, "%5s (mlevel = %d mo = %lu)\t%s (mt = %d)\t%10s (TODO)",
+		    dp.argv[0], dp.mlevel, dp.mo,
 		    dp.argv[1], dp.mt, 
 		    dp.argv[2]);
 	nextline:
@@ -463,7 +463,7 @@ dp_prepare(struct df_parser *dp)
 	const char *errstr = NULL;;
 
 	/* Reset */
-	dp->ml	     = 0;
+	dp->mlevel   = 0;
 	dp->mo	     = 0;
 	dp->mo_itype = 0;
 	dp->mflags   = 0;
@@ -471,12 +471,12 @@ dp_prepare(struct df_parser *dp)
 	dp->mm	     = 0;
 	/* First analyze level */
 	if (*dp->argv[0] == '0')
-		dp->ml = 0;
+		dp->mlevel = 0;
 	else if (*dp->argv[0] == '>') {
 		cp = dp->argv[0];
 		/* Count the > */
 		while (cp && *cp == '>') {
-			dp->ml++;
+			dp->mlevel++;
 			cp++;
 		}
 		if (dp_prepare_mo(dp, cp) == -1)
