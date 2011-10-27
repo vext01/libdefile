@@ -205,7 +205,6 @@ df_check_magic(struct df_file *df)
 	dp.magic_file = df_state.magic_file;
 	dp.level      = -1;
 	dp.lineno     = 0;
-	dp.line	      = NULL;
 	/* Get a line */
 	while (!feof(df_state.magic_file)) {
 		if ((line = fparseln(df_state.magic_file, &linelen, &dp.lineno,
@@ -216,11 +215,11 @@ df_check_magic(struct df_file *df)
 			} else
 				continue;
 		}
-		p = line;
-		if (*p == 0)
-			goto nextline;
 		/* This duplication is only for debugging purposes */
 		dp.line = xstrdup(line);
+		p	= line;
+		if (*p == 0)
+			goto nextline;
 		/* Break The Line !, Guano Apes rules */
 		for (ap = dp.argv; ap < &dp.argv[3] &&
 			 (*ap = strsep(&p, " \t")) != NULL;) {
