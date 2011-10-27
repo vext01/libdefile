@@ -32,7 +32,7 @@
 
 void __dead		 usage(void);
 char			*xstrdup(char *old);
-int			 str2mt(const char *);
+int			 str2mtype(const char *);
 struct df_file		*df_open(const char *);
 void			 df_state_init_files(int, char **);
 int			 df_check(struct df_file *);
@@ -115,7 +115,7 @@ xstrdup(char *old)
 }
 
 int
-str2mt(const char *str)
+str2mtype(const char *str)
 {
 	int i;
 
@@ -234,9 +234,9 @@ df_check_magic(struct df_file *df)
 		/* Convert to something meaningfull */
 		if (dp_prepare(&dp) == -1)
 			goto nextline;
-		DPRINTF(2, "%5s (mlevel = %d moffset = %lu)\t%s (mt = %d)\t%10s (TODO)",
+		DPRINTF(2, "%5s (mlevel = %d moffset = %lu)\t%s (mtype = %d)\t%10s (TODO)",
 		    dp.argv[0], dp.mlevel, dp.moffset,
-		    dp.argv[1], dp.mt, 
+		    dp.argv[1], dp.mtype, 
 		    dp.argv[2]);
 	nextline:
 		free(line);
@@ -467,7 +467,7 @@ dp_prepare(struct df_parser *dp)
 	dp->moffset	  = 0;
 	dp->moffset_itype = 0;
 	dp->mflags	  = 0;
-	dp->mt		  = MT_UNKNOWN;
+	dp->mtype	  = MT_UNKNOWN;
 	dp->mm		  = 0;
 	/* First analyze level */
 	if (*dp->argv[0] == '0')
@@ -513,7 +513,7 @@ dp_prepare(struct df_parser *dp)
 		dp->mflags |= MF_MASK;
 	}
 	/* Convert the string to something meaningful */
-	if ((dp->mt = str2mt(cp)) == MT_UNKNOWN) {
+	if ((dp->mtype = str2mtype(cp)) == MT_UNKNOWN) {
 		warnx("dp_prepare: Uknown magic type %s at line %zd",
 		    cp, dp->lineno);
 		return (-1);
