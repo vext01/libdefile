@@ -481,7 +481,8 @@ dp_prepare(struct df_parser *dp)
 			cp++;
 		}
 	} else {
-		warnx("dp_prepare: unexpected %s", cp);
+		warnx("dp_prepare: unexpected %s at line %zd",
+		    cp, dp->lineno);
 		return (-1);
 	}
 	/* cp now should point to the start of the offset */
