@@ -30,9 +30,9 @@
 
 #include "file.h"
 
-char			*xstrdup(char *old);
 void __dead		 usage(void);
-int			 str2mt(const char *);
+char			*xstrdup(char *old);
+int			 str2mtype(const char *);
 struct df_file		*df_open(const char *);
 void			 df_state_init_files(int, char **);
 int			 df_check(struct df_file *);
@@ -41,7 +41,7 @@ int			 df_check_magic(struct df_file *);
 struct df_match		*df_match_add(struct df_file *, enum match_class,
     const char *, ...);
 int			 dp_prepare(struct df_parser *);
-int			 dp_prepare_mo(struct df_parser *, const char *);
+int			 dp_prepare_moffset(struct df_parser *, const char *);
 
 extern char	*malloc_options;
 extern char	*__progname;
@@ -52,47 +52,56 @@ struct {
 	int		 mt;
 	const char	*str;
 } mt_table[] = {
-	{ MT_UNKNOWN,	"unknown" }, 
-	{ MT_BYTE,	"byte" }, 
-	{ MT_SHORT,	"short" }, 
-	{ MT_LONG,	"long" }, 
-	{ MT_QUAD,	"quad" }, 
-	{ MT_FLOAT,	"float" }, 
-	{ MT_DOUBLE,	"double" }, 
-	{ MT_STRING,	"string" }, 
-	{ MT_PSTRING,	"pstring" }, 
-	{ MT_DATE,	"date" }, 
-	{ MT_QDATE,	"qdate" }, 
-	{ MT_LDATE,	"ldate" }, 
-	{ MT_QLDATE,	"qldate" }, 
-	{ MT_BESHORT,	"beshort" }, 
-	{ MT_BELONG,	"belong" }, 
-	{ MT_BEQUAD,	"bequad" }, 
-	{ MT_BEFLOAT,	"befloat" }, 
-	{ MT_BEDOUBLE,	"bedouble" }, 
-	{ MT_BEDATE,	"bedate" }, 
-	{ MT_BEQDATE,	"beqdate" }, 
-	{ MT_BELDATE,	"beldate" }, 
-	{ MT_BEQLDATE,	"beqldate" }, 
-	{ MT_BESTRING16,"bestring16" }, 
-	{ MT_LESHORT,	"leshort" }, 
-	{ MT_LELONG,	"lelong" }, 
-	{ MT_LEQUAD,	"lequad" }, 
-	{ MT_LEFLOAT,	"lefloat" }, 
-	{ MT_LEDOUBLE,	"ledouble" }, 
-	{ MT_LEDATE,	"ledate" }, 
-	{ MT_LEQDATE,	"leqdate" }, 
-	{ MT_LELDATE,	"leldate" }, 
-	{ MT_LEQLDATE,	"leqldate" }, 
-	{ MT_LESTRING16,"lestring16" }, 
-	{ MT_MELONG,	"melong" }, 
-	{ MT_MEDATE,	"medate" }, 
-	{ MT_MELDATE,	"meldate" }, 
-	{ MT_REGEX,	"regex" }, 
-	{ MT_SEARCH,	"search" }, 
-	{ MT_DEFAULT,	"default" }, 
-	{ -1,		NULL }, 
+	{ MT_UNKNOWN,	"unknown" },
+	{ MT_BYTE,	"byte" },
+	{ MT_SHORT,	"short" },
+	{ MT_LONG,	"long" },
+	{ MT_QUAD,	"quad" },
+	{ MT_FLOAT,	"float" },
+	{ MT_DOUBLE,	"double" },
+	{ MT_STRING,	"string" },
+	{ MT_PSTRING,	"pstring" },
+	{ MT_DATE,	"date" },
+	{ MT_QDATE,	"qdate" },
+	{ MT_LDATE,	"ldate" },
+	{ MT_QLDATE,	"qldate" },
+	{ MT_BESHORT,	"beshort" },
+	{ MT_BELONG,	"belong" },
+	{ MT_BEQUAD,	"bequad" },
+	{ MT_BEFLOAT,	"befloat" },
+	{ MT_BEDOUBLE,	"bedouble" },
+	{ MT_BEDATE,	"bedate" },
+	{ MT_BEQDATE,	"beqdate" },
+	{ MT_BELDATE,	"beldate" },
+	{ MT_BEQLDATE,	"beqldate" },
+	{ MT_BESTRING16,"bestring16" },
+	{ MT_LESHORT,	"leshort" },
+	{ MT_LELONG,	"lelong" },
+	{ MT_LEQUAD,	"lequad" },
+	{ MT_LEFLOAT,	"lefloat" },
+	{ MT_LEDOUBLE,	"ledouble" },
+	{ MT_LEDATE,	"ledate" },
+	{ MT_LEQDATE,	"leqdate" },
+	{ MT_LELDATE,	"leldate" },
+	{ MT_LEQLDATE,	"leqldate" },
+	{ MT_LESTRING16,"lestring16" },
+	{ MT_MELONG,	"melong" },
+	{ MT_MEDATE,	"medate" },
+	{ MT_MELDATE,	"meldate" },
+	{ MT_REGEX,	"regex" },
+	{ MT_SEARCH,	"search" },
+	{ MT_DEFAULT,	"default" },
+	{ -1,		NULL },
 };
+
+void __dead
+usage(void)
+{
+	/* XXX the more '-d' specified, the more verbose. How to express this in usage()? */
+	fprintf(stderr, "usage: [-dLs] [-f magic] %s file [file...]\n",
+	    __progname);
+	exit(1);
+}
 
 char *
 xstrdup(char *old)
@@ -105,17 +114,8 @@ xstrdup(char *old)
 	return (p);
 }
 
-void __dead
-usage(void)
-{
-	/* XXX the more '-d' specified, the more verbose. How to express this in usage()? */
-	fprintf(stderr, "usage: [-dLs] [-f magic] %s file [file...]\n",
-	    __progname);
-	exit(1);
-}
-
 int
-str2mt(const char *str)
+str2mtype(const char *str)
 {
 	int i;
 
@@ -123,7 +123,7 @@ str2mt(const char *str)
 		if (strcmp(str, mt_table[i].str) == 0)
 			return (mt_table[i].mt);
 	}
-	
+
 	return (MT_UNKNOWN);
 }
 /*
@@ -215,7 +215,9 @@ df_check_magic(struct df_file *df)
 			} else
 				continue;
 		}
-		p = line;
+		/* This duplication is only for debugging purposes */
+		dp.line = xstrdup(line);
+		p	= line;
 		if (*p == 0)
 			goto nextline;
 		/* Break The Line !, Guano Apes rules */
@@ -231,9 +233,15 @@ df_check_magic(struct df_file *df)
 		/* Convert to something meaningfull */
 		if (dp_prepare(&dp) == -1)
 			goto nextline;
-
+		DPRINTF(2, "%zd: %5s (mlevel = %d moffset = %lu)\t%s "
+		    "(mtype = %d)\t%10s (TODO)",
+		    dp.lineno,
+		    dp.argv[0], dp.mlevel, dp.moffset,
+		    dp.argv[1], dp.mtype, 
+		    dp.argv[2]);
 	nextline:
 		free(line);
+		free(dp.line);
 	}
 
 	return (0);
@@ -354,12 +362,13 @@ df_check(struct df_file *df)
  * Prepare magic offset
  */
 int
-dp_prepare_mo(struct df_parser *dp, const char *s)
+dp_prepare_moffset(struct df_parser *dp, const char *s)
 {
 	char *end = NULL;
-	const char *cp = s;
+	const char *cp;
 	const char *errstr = NULL;
 
+	cp = s;
 	if (cp == NULL)
 		goto errorinv;
 	/*
@@ -367,6 +376,8 @@ dp_prepare_mo(struct df_parser *dp, const char *s)
 	 * (0x3c.l)
 	 * (( x [.[bslBSL]][+-][ y ])
 	 */
+	
+	/* XXX indirect offsets will modify the string, it should not. */
 	if (*cp == '(') {
 		if ((end = strchr(cp, ')')) == NULL) {
 			warnx("Unclosed paren at line %zd", dp->lineno);
@@ -375,39 +386,46 @@ dp_prepare_mo(struct df_parser *dp, const char *s)
 		*end = 0;	/* terminate */
 		dp->mflags |= MF_INDIRECT;
 		cp++;		/* Jump over ( */
+		/* cp now points to the 0 in (0x3c.l) */
+		/*
+		 * TODO collect offset at cp here.
+		 */
 		/* If type not specified, assume long */
 		if ((end = strchr(cp, '.')) == NULL)
-			dp->mo_itype = MT_LONG;
+			dp->moffset_itype = MT_LONG;
 		else {
-			switch (*cp) {
+			/* Terminate at dot */
+			*end++ = 0;
+			/* end now points over the dot */
+			switch (*end) {
 			case 'c':
 			case 'b':
 			case 'C':
 			case 'B':
-				dp->mo_itype = MT_BYTE;
+				dp->moffset_itype = MT_BYTE;
 				break;
 			case 'h':
 			case 's':
-				dp->mo_itype = MT_LESHORT;
+				dp->moffset_itype = MT_LESHORT;
 				break;
 			case 'l':
-				dp->mo_itype = MT_LELONG;
+				dp->moffset_itype = MT_LELONG;
 				break;
 			case 'S':
-				dp->mo_itype = MT_BESHORT;
+				dp->moffset_itype = MT_BESHORT;
 				break;
 			case 'L':
-				dp->mo_itype = MT_BELONG;
+				dp->moffset_itype = MT_BELONG;
 				break;
 			case 'e':
 			case 'f':
 			case 'g':
-				dp->mo_itype = MT_LEDOUBLE;
+				dp->moffset_itype = MT_LEDOUBLE;
 				break;
 			case 'E':
 			case 'F':
 			case 'G':
-				dp->mo_itype = MT_BEDOUBLE;
+				dp->moffset_itype = MT_BEDOUBLE;
 				break;
 			default:
 				warnx("indirect offset type `%c' "
@@ -415,25 +433,42 @@ dp_prepare_mo(struct df_parser *dp, const char *s)
 				return (-1);
 				break; /* NOTREACHED */
 			}
+			end++;
+			/* end should be at `)' or `+' or `-' */
+			switch (*end) {
+			case ')':
+				*end = 0; /* Terminate */
+				break;
+			case '-':
+				/* dp->moffset *= -1; */
+				/* FALLTHROUGH */
+				end++;
+			case '+':
+				/* TODO collect number */
+				break;
+			default:
+				goto errorinv;
+				break; /* NOTREACHED */
+			}
+			
 		}
 	}
-	/* TODO handle negative and octal */
 	if (cp == NULL)
 		goto errorinv;
 	/* Try hex */
 	if (strlen(cp) > 1 && cp[0] == '0' && cp[1] == 'x') {
 		errno = 0;
-		dp->mo = strtoll(cp, NULL, 16);
+		dp->moffset = strtoll(cp, NULL, 16);
 		if (errno) {
-			warn("dp_prepare_mo: strtoll: %s "
+			warn("dp_prepare_moffset: strtoll: %s "
 			    "line %zd", cp, dp->lineno);
 			return (-1);
 		}
 	}
-	dp->mo = (unsigned long)strtonum(cp, 0,
+	dp->moffset = (unsigned long)strtonum(cp, 0,
 	    LLONG_MAX, &errstr);
 	if (errstr) {
-		warn("dp_prepare_mo: strtonum %s at line %zd",
+		warn("dp_prepare_moffset: strtonum %s at line %zd",
 		    cp, dp->lineno);
 		return (-1);
 	}
@@ -441,7 +476,7 @@ dp_prepare_mo(struct df_parser *dp, const char *s)
 	return (0);
 
 errorinv:
-	warnx("dp_prepare_mo: Invalid offset at line %zd",
+	warnx("dp_prepare_moffset: Invalid offset at line %zd",
 	    dp->lineno);
 
 	return (-1);
@@ -453,54 +488,65 @@ int
 dp_prepare(struct df_parser *dp)
 {
 	char *cp, *mask;
-	u_int64_t maskval;
+	const char *errstr = NULL;;
 
 	/* Reset */
-	dp->ml = 0;
-	dp->mo = 0;
-	dp->mt = MT_UNKNOWN;
-	/* First analyze level */
-	if (*dp->argv[0] == '0')
-		dp->ml = 0;
-	else if (*dp->argv[0] == '>') {
-		cp = dp->argv[0];
+	dp->mlevel	  = 0;
+	dp->moffset	  = 0;
+	dp->moffset_itype = 0;
+	dp->mflags	  = 0;
+	dp->mtype	  = MT_UNKNOWN;
+	dp->mmask	  = 0;
+	/* First analyze level and offset */
+	cp = dp->argv[0];
+	if (*cp == '>') {
 		/* Count the > */
 		while (cp && *cp == '>') {
-			dp->ml++;
+			dp->mlevel++;
 			cp++;
 		}
-		if (dp_prepare_mo(dp, cp) == -1)
-			return (-1);
-	} else {
-		warnx("dp_prepare: unexpected %s", dp->argv[0]);
-		return (-1);
 	}
+	/* cp now should point to the start of the offset */
+	if (dp_prepare_moffset(dp, cp) == -1)
+		return (-1);
+
 	/* Second, analyze test type */
 	/* Split mask and test type first */
 	cp   = dp->argv[1];
-	mask = strchr(cp, ':');
+	mask = strchr(cp, '&');
 	if (mask != NULL) {
 		*mask++ = 0;
-		/* Octa TODO */
-		/* Hexa */
+		errno  = 0;
+		errstr = NULL;
 		if (strlen(mask) > 1 && mask[0] == '0' && mask[1] == 'x') {
-			errno = 0;
-			maskval = strtoll(mask, NULL, 16);
-			if (errno) {
-				warn("dp_prepare: %s", mask);
-				return (-1);
-			}
+			/* Hexa */
+			dp->mmask = strtoll(mask, NULL, 16);
+			if (errno)
+				goto badmask;
+		} else if (strlen(mask) > 1 && mask[0] == '0') {
+			/* Octa */
+			dp->mmask = strtoll(mask, NULL, 8);
+			if (errno)
+				goto badmask;
+		} else {
+			/* Decimal */
+			dp->mmask = strtonum(mask, 0, LLONG_MAX, &errstr);
+			if (errstr)
+				goto badmask;
 		}
-		/* Decimal TODO */
+		dp->mflags |= MF_MASK;
 	}
 	/* Convert the string to something meaningful */
-	if ((dp->mt = str2mt(cp)) == MT_UNKNOWN) {
+	if ((dp->mtype = str2mtype(cp)) == MT_UNKNOWN) {
 		warnx("dp_prepare: Uknown magic type %s at line %zd",
 		    cp, dp->lineno);
 		return (-1);
 	}
 
 	return (0);
+badmask:
+	warn("dp_prepare: bad mask %s at line %zd", mask, dp->lineno);
+	return (-1);
 }
 
 int
@@ -518,7 +564,7 @@ main(int argc, char **argv)
 		switch (ch) {
 		case 'd':
 #ifndef DEBUG
-			errx(1, "this binary was not built with -DDEBUG");
+			errx(1, "this binary was not built with DEBUG");
 #endif
 			df_debug++;
 			break;
@@ -547,5 +593,3 @@ main(int argc, char **argv)
 
 	return (EXIT_SUCCESS);
 }
-
-
