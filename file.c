@@ -564,7 +564,7 @@ main(int argc, char **argv)
 		switch (ch) {
 		case 'd':
 #ifndef DEBUG
-			errx(1, "this binary was not built with -DDEBUG");
+			errx(1, "this binary was not built with DEBUG");
 #endif
 			df_debug++;
 			break;
