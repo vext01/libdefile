@@ -460,7 +460,7 @@ int
 dp_prepare(struct df_parser *dp)
 {
 	char *cp, *mask;
-	u_int64_t maskval;
+	const char *errstr = NULL;;
 
 	/* Reset */
 	dp->ml	     = 0;
@@ -468,6 +468,7 @@ dp_prepare(struct df_parser *dp)
 	dp->mo_itype = 0;
 	dp->mflags   = 0;
 	dp->mt	     = MT_UNKNOWN;
+	dp->mm	     = 0;
 	/* First analyze level */
 	if (*dp->argv[0] == '0')
 		dp->ml = 0;
@@ -485,24 +486,31 @@ dp_prepare(struct df_parser *dp)
 		return (-1);
 	}
 
-
 	/* Second, analyze test type */
 	/* Split mask and test type first */
 	cp   = dp->argv[1];
-	mask = strchr(cp, ':');
+	mask = strchr(cp, '&');
 	if (mask != NULL) {
 		*mask++ = 0;
-		/* Octa TODO */
-		/* Hexa */
+		errno  = 0;
+		errstr = NULL;
 		if (strlen(mask) > 1 && mask[0] == '0' && mask[1] == 'x') {
-			errno = 0;
-			maskval = strtoll(mask, NULL, 16);
-			if (errno) {
-				warn("dp_prepare: %s", mask);
-				return (-1);
-			}
+			/* Hexa */
+			dp->mm = strtoll(mask, NULL, 16);
+			if (errno)
+				goto badmask;
+		} else if (strlen(mask) > 1 && mask[0] == '0') {
+			/* Octa */
+			dp->mm = strtoll(mask, NULL, 8);
+			if (errno)
+				goto badmask;
+		} else {
+			/* Decimal */
+			dp->mm = strtonum(mask, 0, LLONG_MAX, &errstr);
+			if (errstr)
+				goto badmask;
 		}
-		/* Decimal TODO */
+		dp->mflags |= MF_MASK;
 	}
 	/* Convert the string to something meaningful */
 	if ((dp->mt = str2mt(cp)) == MT_UNKNOWN) {
@@ -512,6 +520,9 @@ dp_prepare(struct df_parser *dp)
 	}
 
 	return (0);
+badmask:
+	warn("dp_prepare: bad mask %s", mask);
+	return (-1);
 }
 
 int

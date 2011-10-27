@@ -116,12 +116,14 @@ struct df_parser {
 	char			*line;		/* Current linet */
 	int			 level; 	/* Current parser level */
 	char			*argv[5];	/* The broken tokens */
+	int			 ml; 		/* Magic level */
 	u_long			 mo;		/* Magic offset */
 	enum df_magic_test	 mo_itype; 	/* Indirect type if MF_INDIRECT */
-	int			 ml; 		/* Magic level */
 	enum df_magic_test	 mt; 		/* Magic type */
+	u_int64_t		 mm;		/* Magic mask */
 	u_int32_t		 mflags;	/* Magic flags */
-#define MF_INDIRECT 0x01			/* Indirect offset (mo) */
+#define MF_INDIRECT	0x01	/* Indirect offset (mo) */
+#define MF_MASK		0x02	/* Value must be masked (mm is valid) */
 	/* the test (d)ata itself */
 	union {
 		u_int8_t	 d_byte;
