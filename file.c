@@ -365,9 +365,10 @@ int
 dp_prepare_moffset(struct df_parser *dp, const char *s)
 {
 	char *end = NULL;
-	const char *cp = s;
+	const char *cp;
 	const char *errstr = NULL;
 
+	cp = s;
 	if (cp == NULL)
 		goto errorinv;
 	/*
@@ -375,6 +376,8 @@ dp_prepare_moffset(struct df_parser *dp, const char *s)
 	 * (0x3c.l)
 	 * (( x [.[bslBSL]][+-][ y ])
 	 */
+	
+	/* XXX indirect offsets will modify the string, it should not. */
 	if (*cp == '(') {
 		if ((end = strchr(cp, ')')) == NULL) {
 			warnx("Unclosed paren at line %zd", dp->lineno);
@@ -383,11 +386,18 @@ dp_prepare_moffset(struct df_parser *dp, const char *s)
 		*end = 0;	/* terminate */
 		dp->mflags |= MF_INDIRECT;
 		cp++;		/* Jump over ( */
+		/* cp now points to the 0 in (0x3c.l) */
+		/*
+		 * TODO collect offset at cp here.
+		 */
 		/* If type not specified, assume long */
 		if ((end = strchr(cp, '.')) == NULL)
 			dp->moffset_itype = MT_LONG;
 		else {
-			switch (*cp) {
+			/* Terminate at dot */
+			*end++ = 0;
+			/* end now points over the dot */
+			switch (*end) {
 			case 'c':
 			case 'b':
 			case 'C':
@@ -423,9 +433,26 @@ dp_prepare_moffset(struct df_parser *dp, const char *s)
 				return (-1);
 				break; /* NOTREACHED */
 			}
+			end++;
+			/* end should be at `)' or `+' or `-' */
+			switch (*end) {
+			case ')':
+				*end = 0; /* Terminate */
+				break;
+			case '-':
+				/* dp->moffset *= -1; */
+				/* FALLTHROUGH */
+				end++;
+			case '+':
+				/* TODO collect number */
+				break;
+			default:
+				goto errorinv;
+				break; /* NOTREACHED */
+			}
+			
 		}
 	}
-	/* TODO handle negative and octal */
 	if (cp == NULL)
 		goto errorinv;
 	/* Try hex */
