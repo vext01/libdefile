@@ -468,7 +468,7 @@ dp_prepare(struct df_parser *dp)
 	dp->moffset_itype = 0;
 	dp->mflags	  = 0;
 	dp->mtype	  = MT_UNKNOWN;
-	dp->mm		  = 0;
+	dp->mmask	  = 0;
 	/* First analyze level */
 	if (*dp->argv[0] == '0')
 		dp->mlevel = 0;
@@ -496,17 +496,17 @@ dp_prepare(struct df_parser *dp)
 		errstr = NULL;
 		if (strlen(mask) > 1 && mask[0] == '0' && mask[1] == 'x') {
 			/* Hexa */
-			dp->mm = strtoll(mask, NULL, 16);
+			dp->mmask = strtoll(mask, NULL, 16);
 			if (errno)
 				goto badmask;
 		} else if (strlen(mask) > 1 && mask[0] == '0') {
 			/* Octa */
-			dp->mm = strtoll(mask, NULL, 8);
+			dp->mmask = strtoll(mask, NULL, 8);
 			if (errno)
 				goto badmask;
 		} else {
 			/* Decimal */
-			dp->mm = strtonum(mask, 0, LLONG_MAX, &errstr);
+			dp->mmask = strtonum(mask, 0, LLONG_MAX, &errstr);
 			if (errstr)
 				goto badmask;
 		}

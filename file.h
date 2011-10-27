@@ -120,7 +120,7 @@ struct df_parser {
 	u_long			 moffset;	/* Magic offset */
 	enum df_magic_test	 moffset_itype;	/* Indirect type if MF_INDIRECT */
 	enum df_magic_test	 mtype; 	/* Magic type */
-	u_int64_t		 mm;		/* Magic mask */
+	u_int64_t		 mmask;		/* Magic mask */
 	u_int32_t		 mflags;	/* Magic flags */
 #define MF_INDIRECT	0x01	/* Indirect offset (mo) */
 #define MF_MASK		0x02	/* Value must be masked (mm is valid) */
