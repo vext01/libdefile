@@ -472,18 +472,12 @@ dp_prepare(struct df_parser *dp)
 	dp->mmask	  = 0;
 	/* First analyze level and offset */
 	cp = dp->argv[0];
-	if (*cp == '0')
-		dp->mlevel = 0;
-	else if (*cp == '>') {
+	if (*cp == '>') {
 		/* Count the > */
 		while (cp && *cp == '>') {
 			dp->mlevel++;
 			cp++;
 		}
-	} else {
-		warnx("dp_prepare: unexpected %s at line %zd",
-		    cp, dp->lineno);
-		return (-1);
 	}
 	/* cp now should point to the start of the offset */
 	if (dp_prepare_moffset(dp, cp) == -1)
