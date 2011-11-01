@@ -233,8 +233,8 @@ df_check_magic(struct df_file *df)
 		/* Convert to something meaningfull */
 		if (dp_prepare(&dp) == -1)
 			goto nextline;
-		DPRINTF(2, "%zd: %5s (mlevel = %d moffset = %lu)\t%s "
-		    "(mtype = %d)\t%10s (TODO)",
+		DPRINTF(2, "%zd: %5s mlevel = %d moffset = %3lu %7s "
+		    "mtype = %d %12s",
 		    dp.lineno,
 		    dp.argv[0], dp.mlevel, dp.moffset,
 		    dp.argv[1], dp.mtype, 
