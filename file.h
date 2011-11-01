@@ -126,6 +126,7 @@ struct df_parser {
 	u_int32_t		 mflags;	/* Magic flags */
 #define MF_INDIRECT	0x01	/* Indirect offset (mo) */
 #define MF_MASK		0x02	/* Value must be masked (mm is valid) */
+#define MF_MIME		0x04	/* We're parsing a mime entry */	
 	/* the test (d)ata itself */
 	union {
 		u_int8_t	 d_byte;

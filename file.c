@@ -373,12 +373,16 @@ dp_prepare_moffset(struct df_parser *dp, const char *s)
 	cp = s;
 	if (cp == NULL)
 		goto errorinv;
+	/* Check for mimes, skip for now */
+	if (*cp == '!') {
+		dp->mflags |= MF_MIME;
+		return (0);
+	}
 	/*
 	 * Check for an indirect offset, we're parsing something like:
 	 * (0x3c.l)
 	 * (( x [.[bslBSL]][+-][ y ])
 	 */
-	
 	/* XXX indirect offsets will modify the string, it should not. */
 	if (*cp == '(') {
 		if ((end = strchr(cp, ')')) == NULL) {
@@ -511,7 +515,11 @@ dp_prepare(struct df_parser *dp)
 	/* cp now should point to the start of the offset */
 	if (dp_prepare_moffset(dp, cp) == -1)
 		return (-1);
-
+	/* We ignore mimes for now */
+	if (dp->mflags & MF_MIME) {
+		DPRINTF(1, "%zd: mime ignored", dp->lineno);
+		goto ignore;
+	}
 	/* Second, analyze test type */
 	/* Split mask and test type first */
 	cp   = dp->argv[1];
@@ -556,15 +564,15 @@ dp_prepare(struct df_parser *dp)
 		    cp, dp->lineno);
 		return (-1);
 	}
-
+	
 	return (0);
 badmask:
 	warn("dp_prepare: bad mask %s at line %zd", mask, dp->lineno);
 	return (-1);
 badmod:
 	warn("dp_prepare: bad mod %s at line %zd", mod, dp->lineno);
+ignore:
 	return (-1);
-	
 }
 
 int
