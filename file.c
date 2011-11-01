@@ -489,7 +489,7 @@ errorinv:
 int
 dp_prepare(struct df_parser *dp)
 {
-	char *cp, *mask;
+	char *cp, *mask, *mod;
 	const char *errstr = NULL;;
 
 	/* Reset */
@@ -538,6 +538,18 @@ dp_prepare(struct df_parser *dp)
 		}
 		dp->mflags |= MF_MASK;
 	}
+	/* If no &, check for modifier / as in string/ or search/ */
+	if (mask == NULL &&
+	    (strncmp(cp, "string", 6) == 0 ||
+	    strncmp(cp, "search", 6) == 0)) {
+		mod = strchr(cp, '/');
+		if (mod != NULL) {
+			if (mod[1] == 0)
+				goto badmod;
+			*mod++ = 0;
+			/* TODO collect mod */
+		}
+	}
 	/* Convert the string to something meaningful */
 	if ((dp->mtype = str2mtype(cp)) == MT_UNKNOWN) {
 		warnx("dp_prepare: Uknown magic type %s at line %zd",
@@ -549,6 +561,10 @@ dp_prepare(struct df_parser *dp)
 badmask:
 	warn("dp_prepare: bad mask %s at line %zd", mask, dp->lineno);
 	return (-1);
+badmod:
+	warn("dp_prepare: bad mod %s at line %zd", mod, dp->lineno);
+	return (-1);
+	
 }
 
 int
