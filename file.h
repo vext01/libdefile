@@ -51,6 +51,7 @@ struct df_state {
 enum df_magic_test {
 	MT_UNKNOWN,
 	MT_BYTE,
+	MT_UBYTE,
 	MT_SHORT,
 	MT_LONG,
 	MT_QUAD,
@@ -63,6 +64,7 @@ enum df_magic_test {
 	MT_LDATE,
 	MT_QLDATE,
 	MT_BESHORT,
+	MT_UBESHORT,
 	MT_BELONG,
 	MT_BEQUAD,
 	MT_BEFLOAT,

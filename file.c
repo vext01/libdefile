@@ -54,6 +54,7 @@ struct {
 } mt_table[] = {
 	{ MT_UNKNOWN,	"unknown" },
 	{ MT_BYTE,	"byte" },
+	{ MT_UBYTE,	"ubyte" },
 	{ MT_SHORT,	"short" },
 	{ MT_LONG,	"long" },
 	{ MT_QUAD,	"quad" },
@@ -66,6 +67,7 @@ struct {
 	{ MT_LDATE,	"ldate" },
 	{ MT_QLDATE,	"qldate" },
 	{ MT_BESHORT,	"beshort" },
+	{ MT_UBESHORT,	"ubeshort" },
 	{ MT_BELONG,	"belong" },
 	{ MT_BEQUAD,	"bequad" },
 	{ MT_BEFLOAT,	"befloat" },
