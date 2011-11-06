@@ -367,7 +367,8 @@ df_check(struct df_file *df)
 }
 
 /*
- * Prepare magic offset
+ * Parse magic offset field.
+ * Eg. '0', '>>>>>(78.l+23)', '>3', ...
  */
 int
 dp_prepare_moffset(struct df_parser *dp, const char *s)
@@ -539,6 +540,10 @@ ignore:
 	return (-1);
 }
 
+/*
+ * Parse the test type field
+ * Eg. 'lelong', 'byte', 'leshort&0x0001', ...
+ */
 int
 dp_prepare_ttype(struct df_parser *dp, char *cp)
 {
@@ -599,6 +604,10 @@ badmask:
 	return (-1);
 }
 
+/*
+ * Parse the test data field.
+ * Eg. '=0x0000', '\x01\x00\x6F\x36\x35', 'dex\n[0-9][0-9][0-9]\0', ...
+ */
 int
 dp_prepare_tdata(struct df_parser *df, char *cp)
 {
