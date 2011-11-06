@@ -529,51 +529,6 @@ dp_prepare(struct df_parser *dp)
 	/* Second, analyze test type */
 	if (dp_prepare_ttype(dp, dp->argv[1]) == -1)
 		return (-1);
-#if 0
-	/* Split mask and test type first */
-	cp   = dp->argv[1];
-	mask = strchr(cp, '&');
-	if (mask != NULL) {
-		*mask++ = 0;
-		errno  = 0;
-		errstr = NULL;
-		if (strlen(mask) > 1 && mask[0] == '0' && mask[1] == 'x') {
-			/* Hexa */
-			dp->mmask = strtoll(mask, NULL, 16);
-			if (errno)
-				goto badmask;
-		} else if (strlen(mask) > 1 && mask[0] == '0') {
-			/* Octa */
-			dp->mmask = strtoll(mask, NULL, 8);
-			if (errno)
-				goto badmask;
-		} else {
-			/* Decimal */
-			dp->mmask = strtonum(mask, 0, LLONG_MAX, &errstr);
-			if (errstr)
-				goto badmask;
-		}
-		dp->mflags |= MF_MASK;
-	}
-	/* If no &, check for modifier / as in string/ or search/ */
-	if (mask == NULL &&
-	    (strncmp(cp, "string", 6) == 0 ||
-	    strncmp(cp, "search", 6) == 0)) {
-		mod = strchr(cp, '/');
-		if (mod != NULL) {
-			if (mod[1] == 0)
-				goto badmod;
-			*mod++ = 0;
-			/* TODO collect mod */
-		}
-	}
-	/* Convert the string to something meaningful */
-	if ((dp->mtype = str2mtype(cp)) == MT_UNKNOWN) {
-		warnx("dp_prepare: Uknown magic type %s at line %zd",
-		    cp, dp->lineno);
-		return (-1);
-	}
-#endif
 	
 	return (0);
 ignore:
