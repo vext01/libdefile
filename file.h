@@ -170,9 +170,9 @@ struct df_parser {
 		int64_t		 d_leqldate;
 		char		*d_lestring16;
 		/* middle endian */
-		int32_t		 melong;
-		int16_t		 medate;
-		int32_t		 meldate;
+		int32_t		 d_melong;
+		int16_t		 d_medate;
+		int32_t		 d_meldate;
 	};
 	/* flags, as indicated by test prefixes */
 #define DF_TEST_PFX_EQ			(1 << 0)
