@@ -54,8 +54,10 @@ struct {
 } mt_table[] = {
 	{ MT_UNKNOWN,	"unknown" },
 	{ MT_BYTE,	"byte" },
+	{ MT_UBYTE,	"ubyte" },
 	{ MT_SHORT,	"short" },
 	{ MT_LONG,	"long" },
+	{ MT_ULONG,	"ulong" },
 	{ MT_QUAD,	"quad" },
 	{ MT_FLOAT,	"float" },
 	{ MT_DOUBLE,	"double" },
@@ -66,7 +68,9 @@ struct {
 	{ MT_LDATE,	"ldate" },
 	{ MT_QLDATE,	"qldate" },
 	{ MT_BESHORT,	"beshort" },
+	{ MT_UBESHORT,	"ubeshort" },
 	{ MT_BELONG,	"belong" },
+	{ MT_UBELONG,	"ubelong" },
 	{ MT_BEQUAD,	"bequad" },
 	{ MT_BEFLOAT,	"befloat" },
 	{ MT_BEDOUBLE,	"bedouble" },
@@ -76,7 +80,9 @@ struct {
 	{ MT_BEQLDATE,	"beqldate" },
 	{ MT_BESTRING16,"bestring16" },
 	{ MT_LESHORT,	"leshort" },
+	{ MT_ULESHORT,	"uleshort" },
 	{ MT_LELONG,	"lelong" },
+	{ MT_ULELONG,	"ulelong" },
 	{ MT_LEQUAD,	"lequad" },
 	{ MT_LEFLOAT,	"lefloat" },
 	{ MT_LEDOUBLE,	"ledouble" },
@@ -233,8 +239,8 @@ df_check_magic(struct df_file *df)
 		/* Convert to something meaningfull */
 		if (dp_prepare(&dp) == -1)
 			goto nextline;
-		DPRINTF(2, "%zd: %5s (mlevel = %d moffset = %lu)\t%s "
-		    "(mtype = %d)\t%10s (TODO)",
+		DPRINTF(2, "%zd: %5s mlevel = %d moffset = %3lu %7s "
+		    "mtype = %d %12s",
 		    dp.lineno,
 		    dp.argv[0], dp.mlevel, dp.moffset,
 		    dp.argv[1], dp.mtype, 
@@ -371,12 +377,16 @@ dp_prepare_moffset(struct df_parser *dp, const char *s)
 	cp = s;
 	if (cp == NULL)
 		goto errorinv;
+	/* Check for mimes, skip for now */
+	if (*cp == '!') {
+		dp->mflags |= MF_MIME;
+		return (0);
+	}
 	/*
 	 * Check for an indirect offset, we're parsing something like:
 	 * (0x3c.l)
 	 * (( x [.[bslBSL]][+-][ y ])
 	 */
-	
 	/* XXX indirect offsets will modify the string, it should not. */
 	if (*cp == '(') {
 		if ((end = strchr(cp, ')')) == NULL) {
@@ -487,7 +497,7 @@ errorinv:
 int
 dp_prepare(struct df_parser *dp)
 {
-	char *cp, *mask;
+	char *cp, *mask, *mod;
 	const char *errstr = NULL;;
 
 	/* Reset */
@@ -509,7 +519,11 @@ dp_prepare(struct df_parser *dp)
 	/* cp now should point to the start of the offset */
 	if (dp_prepare_moffset(dp, cp) == -1)
 		return (-1);
-
+	/* We ignore mimes for now */
+	if (dp->mflags & MF_MIME) {
+		DPRINTF(1, "%zd: mime ignored", dp->lineno);
+		goto ignore;
+	}
 	/* Second, analyze test type */
 	/* Split mask and test type first */
 	cp   = dp->argv[1];
@@ -536,16 +550,32 @@ dp_prepare(struct df_parser *dp)
 		}
 		dp->mflags |= MF_MASK;
 	}
+	/* If no &, check for modifier / as in string/ or search/ */
+	if (mask == NULL &&
+	    (strncmp(cp, "string", 6) == 0 ||
+	    strncmp(cp, "search", 6) == 0)) {
+		mod = strchr(cp, '/');
+		if (mod != NULL) {
+			if (mod[1] == 0)
+				goto badmod;
+			*mod++ = 0;
+			/* TODO collect mod */
+		}
+	}
 	/* Convert the string to something meaningful */
 	if ((dp->mtype = str2mtype(cp)) == MT_UNKNOWN) {
 		warnx("dp_prepare: Uknown magic type %s at line %zd",
 		    cp, dp->lineno);
 		return (-1);
 	}
-
+	
 	return (0);
 badmask:
 	warn("dp_prepare: bad mask %s at line %zd", mask, dp->lineno);
+	return (-1);
+badmod:
+	warn("dp_prepare: bad mod %s at line %zd", mod, dp->lineno);
+ignore:
 	return (-1);
 }
 

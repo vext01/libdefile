@@ -51,8 +51,10 @@ struct df_state {
 enum df_magic_test {
 	MT_UNKNOWN,
 	MT_BYTE,
+	MT_UBYTE,
 	MT_SHORT,
 	MT_LONG,
+	MT_ULONG,
 	MT_QUAD,
 	MT_FLOAT,
 	MT_DOUBLE,
@@ -63,7 +65,9 @@ enum df_magic_test {
 	MT_LDATE,
 	MT_QLDATE,
 	MT_BESHORT,
+	MT_UBESHORT,
 	MT_BELONG,
+	MT_UBELONG,
 	MT_BEQUAD,
 	MT_BEFLOAT,
 	MT_BEDOUBLE,
@@ -72,8 +76,10 @@ enum df_magic_test {
 	MT_BELDATE,
 	MT_BEQLDATE,
 	MT_BESTRING16,
+	MT_ULESHORT,
 	MT_LESHORT,
 	MT_LELONG,
+	MT_ULELONG,
 	MT_LEQUAD,
 	MT_LEFLOAT,
 	MT_LEDOUBLE,
@@ -124,6 +130,7 @@ struct df_parser {
 	u_int32_t		 mflags;	/* Magic flags */
 #define MF_INDIRECT	0x01	/* Indirect offset (mo) */
 #define MF_MASK		0x02	/* Value must be masked (mm is valid) */
+#define MF_MIME		0x04	/* We're parsing a mime entry */	
 	/* the test (d)ata itself */
 	union {
 		u_int8_t	 d_byte;
