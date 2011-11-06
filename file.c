@@ -614,6 +614,9 @@ dp_prepare_mdata(struct df_parser *df, char *cp)
 {
 	int			ret = -1;
 
+	/*
+	 * this is quite long code XXX
+	 */
 	switch (df->mtype) {
 	/* Numeric types */
 	case MT_BYTE:
