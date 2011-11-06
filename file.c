@@ -42,6 +42,7 @@ struct df_match		*df_match_add(struct df_file *, enum match_class,
     const char *, ...);
 int			 dp_prepare(struct df_parser *);
 int			 dp_prepare_moffset(struct df_parser *, const char *);
+int			 dp_prepare_ttype(struct df_parser *, char *);
 
 extern char	*malloc_options;
 extern char	*__progname;
@@ -491,14 +492,14 @@ errorinv:
 
 	return (-1);
 }
+
 /*
  * Bake dp into something usable.
  */
 int
 dp_prepare(struct df_parser *dp)
 {
-	char *cp, *mask, *mod;
-	const char *errstr = NULL;;
+	char			*cp;
 
 	/* Reset */
 	dp->mlevel	  = 0;
@@ -507,6 +508,7 @@ dp_prepare(struct df_parser *dp)
 	dp->mflags	  = 0;
 	dp->mtype	  = MT_UNKNOWN;
 	dp->mmask	  = 0;
+	dp->d_quad	  = 0;	/* the longest type in the union */
 	/* First analyze level and offset */
 	cp = dp->argv[0];
 	if (*cp == '>') {
@@ -525,6 +527,9 @@ dp_prepare(struct df_parser *dp)
 		goto ignore;
 	}
 	/* Second, analyze test type */
+	if (dp_prepare_ttype(dp, dp->argv[1]) == -1)
+		return (-1);
+#if 0
 	/* Split mask and test type first */
 	cp   = dp->argv[1];
 	mask = strchr(cp, '&');
@@ -568,14 +573,70 @@ dp_prepare(struct df_parser *dp)
 		    cp, dp->lineno);
 		return (-1);
 	}
+#endif
 	
 	return (0);
-badmask:
-	warn("dp_prepare: bad mask %s at line %zd", mask, dp->lineno);
+ignore:
 	return (-1);
+}
+
+int
+dp_prepare_ttype(struct df_parser *dp, char *cp)
+{
+	char			*mask, *mod;
+	const char		*errstr = NULL;
+
+	/* Split mask and test type first */
+	cp   = dp->argv[1];
+	mask = strchr(cp, '&');
+	if (mask != NULL) {
+		*mask++ = 0;
+		errno  = 0;
+		errstr = NULL;
+		if (strlen(mask) > 1 && mask[0] == '0' && mask[1] == 'x') {
+			/* Hexa */
+			dp->mmask = strtoll(mask, NULL, 16);
+			if (errno)
+				goto badmask;
+		} else if (strlen(mask) > 1 && mask[0] == '0') {
+			/* Octa */
+			dp->mmask = strtoll(mask, NULL, 8);
+			if (errno)
+				goto badmask;
+		} else {
+			/* Decimal */
+			dp->mmask = strtonum(mask, 0, LLONG_MAX, &errstr);
+			if (errstr)
+				goto badmask;
+		}
+		dp->mflags |= MF_MASK;
+	}
+	/* If no &, check for modifier / as in string/ or search/ */
+	if (mask == NULL &&
+	    (strncmp(cp, "string", 6) == 0 ||
+	    strncmp(cp, "search", 6) == 0)) {
+		mod = strchr(cp, '/');
+		if (mod != NULL) {
+			if (mod[1] == 0)
+				goto badmod;
+			*mod++ = 0;
+			/* TODO collect mod */
+		}
+	}
+	/* Convert the string to something meaningful */
+	if ((dp->mtype = str2mtype(cp)) == MT_UNKNOWN) {
+		warnx("dp_prepare: Uknown magic type %s at line %zd",
+		    cp, dp->lineno);
+		return (-1);
+	}
+
+	return (0);
+
 badmod:
 	warn("dp_prepare: bad mod %s at line %zd", mod, dp->lineno);
-ignore:
+	return (-1);
+badmask:
+	warn("dp_prepare: bad mask %s at line %zd", mask, dp->lineno);
 	return (-1);
 }
 
