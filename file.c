@@ -672,7 +672,10 @@ dp_prepare_mdata_numeric(struct df_parser *df, char *cp)
 	}
 
 	/* XXX check for incompatible flag combos */
-
+	/* EQ + LT */
+	/* EQ + GT */
+	/* GT + LT */
+	/* SET + CLR */
 
 	/* XXX store away test data in an "endian certain" mannaer */
 
