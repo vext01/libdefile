@@ -641,28 +641,28 @@ dp_prepare_mdata_numeric(struct df_parser *df, char *cp)
 		DPRINTF(2, "Found numerical speical prefix: %c", *cp);
 		switch (*cp) {
 		case '=':
-			df->test_flags &= DF_TEST_PFX_EQ;
+			df->test_flags |= DF_TEST_PFX_EQ;
 			break;
 		case '<':
-			df->test_flags &= DF_TEST_PFX_LT;
+			df->test_flags |= DF_TEST_PFX_LT;
 			break;
 		case '>':
-			df->test_flags &= DF_TEST_PFX_GT;
+			df->test_flags |= DF_TEST_PFX_GT;
 			break;
 		case '&':
-			df->test_flags &= DF_TEST_PFX_BSET;
+			df->test_flags |= DF_TEST_PFX_BSET;
 			break;
 		case '^':
-			df->test_flags &= DF_TEST_PFX_BCLR;
+			df->test_flags |= DF_TEST_PFX_BCLR;
 			break;
 		case '~':
-			df->test_flags &= DF_TEST_PFX_BNEG;
+			df->test_flags |= DF_TEST_PFX_BNEG;
 			break;
 		case 'x':
-			df->test_flags &= DF_TEST_PFX_X;
+			df->test_flags |= DF_TEST_PFX_X;
 			break;
 		case '!':
-			df->test_flags &= DF_TEST_PFX_NEG;
+			df->test_flags |= DF_TEST_PFX_NEG;
 			break;
 		default:
 			/* should not happen */
@@ -672,6 +672,7 @@ dp_prepare_mdata_numeric(struct df_parser *df, char *cp)
 	}
 
 	/* XXX check for incompatible flag combos */
+
 
 	/* XXX store away test data in an "endian certain" mannaer */
 
