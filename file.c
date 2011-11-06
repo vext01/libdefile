@@ -612,6 +612,8 @@ badmask:
 int
 dp_prepare_mdata(struct df_parser *df, char *cp)
 {
+	int			ret = -1;
+
 	switch (df->mtype) {
 	/* Numeric types */
 	case MT_BYTE:
@@ -637,7 +639,7 @@ dp_prepare_mdata(struct df_parser *df, char *cp)
 	case MT_LEFLOAT:
 	case MT_LEDOUBLE:
 	case MT_MELONG:
-		dp_prepare_mdata_numeric(df, cp);
+		ret = dp_prepare_mdata_numeric(df, cp);
 		break;
 	/* Date types */
 	case MT_DATE:
@@ -670,17 +672,61 @@ dp_prepare_mdata(struct df_parser *df, char *cp)
 		break;
 	default:
 		/* should never happen */
-		warn("%s: unknown magic type: %u", __FILE__, df->mtype);
-		return (-1);
+		warn("%s: unknown magic type: %u", __func__, df->mtype);
 	};
 
-	return (0);
+	return (ret);
 }
 
+/*
+ * Parse a numeric magic data field
+ * Eg. '>0', '0407', '0x84500526'
+ */
 int
 dp_prepare_mdata_numeric(struct df_parser *df, char *cp)
 {
-	return (0);
+	char			*special = "=<>&^~x!";
+	int			 ret = -1;
+
+	if (cp == NULL) {
+		warn("%s: null magic data", __func__); /* XXX why does this happen? */
+		return (-1);
+	}
+
+	DPRINTF(2, "Parse numerical magic data: %s", cp);
+
+	/* continue until we have parsed all special prefixes */
+	while (strcspn(cp, special)) {
+		DPRINTF(2, "Found numerical speical prefix: %c", *cp);
+		switch (*cp) {
+		case '=':
+			break;
+		case '<':
+			break;
+		case '>':
+			break;
+		case '&':
+			break;
+		case '^':
+			break;
+		case '~':
+			break;
+		case 'x':
+			break;
+		case '!':
+			break;
+		default:
+			/* should not happen */
+			warn("%s: unknown special prefix: %c", __func__, *cp);
+		};
+		cp++;
+	}
+
+	/* XXX store away test data in an "endian certain" mannaer */
+
+	ret = 0;
+
+	return (ret);
 }
 
 int
