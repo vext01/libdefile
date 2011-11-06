@@ -43,6 +43,7 @@ struct df_match		*df_match_add(struct df_file *, enum match_class,
 int			 dp_prepare(struct df_parser *);
 int			 dp_prepare_moffset(struct df_parser *, const char *);
 int			 dp_prepare_ttype(struct df_parser *, char *);
+int			 dp_prepare_tdata(struct df_parser *, char *);
 
 extern char	*malloc_options;
 extern char	*__progname;
@@ -529,6 +530,9 @@ dp_prepare(struct df_parser *dp)
 	/* Second, analyze test type */
 	if (dp_prepare_ttype(dp, dp->argv[1]) == -1)
 		return (-1);
+	/* Now test data */
+	if (dp_prepare_tdata(dp, dp->argv[2]) == -1)
+		return (-1);
 	
 	return (0);
 ignore:
@@ -593,6 +597,13 @@ badmod:
 badmask:
 	warn("dp_prepare: bad mask %s at line %zd", mask, dp->lineno);
 	return (-1);
+}
+
+int
+dp_prepare_tdata(struct df_parser *df, char *cp)
+{
+
+	return (0);
 }
 
 int
