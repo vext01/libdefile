@@ -31,7 +31,7 @@
 #include "file.h"
 
 void __dead		 usage(void);
-char			*xstrdup(char *old);
+char			*xstrdup(char *);
 int			 str2mtype(const char *);
 struct df_file		*df_open(const char *);
 void			 df_state_init_files(int, char **);
@@ -42,8 +42,9 @@ struct df_match		*df_match_add(struct df_file *, enum match_class,
     const char *, ...);
 int			 dp_prepare(struct df_parser *);
 int			 dp_prepare_moffset(struct df_parser *, const char *);
-int			 dp_prepare_ttype(struct df_parser *, char *);
-int			 dp_prepare_tdata(struct df_parser *, char *);
+int			 dp_prepare_mtype(struct df_parser *, char *);
+int			 dp_prepare_mdata(struct df_parser *, char *);
+int			 dp_prepare_mdata_numeric(struct df_parser *, char *);
 
 extern char	*malloc_options;
 extern char	*__progname;
@@ -529,10 +530,10 @@ dp_prepare(struct df_parser *dp)
 		goto ignore;
 	}
 	/* Second, analyze test type */
-	if (dp_prepare_ttype(dp, dp->argv[1]) == -1)
+	if (dp_prepare_mtype(dp, dp->argv[1]) == -1)
 		return (-1);
 	/* Now test data */
-	if (dp_prepare_tdata(dp, dp->argv[2]) == -1)
+	if (dp_prepare_mdata(dp, dp->argv[2]) == -1)
 		return (-1);
 	
 	return (0);
@@ -545,7 +546,7 @@ ignore:
  * Eg. 'lelong', 'byte', 'leshort&0x0001', ...
  */
 int
-dp_prepare_ttype(struct df_parser *dp, char *cp)
+dp_prepare_mtype(struct df_parser *dp, char *cp)
 {
 	char			*mask, *mod;
 	const char		*errstr = NULL;
@@ -609,7 +610,7 @@ badmask:
  * Eg. '=0x0000', '\x01\x00\x6F\x36\x35', 'dex\n[0-9][0-9][0-9]\0', ...
  */
 int
-dp_prepare_tdata(struct df_parser *df, char *cp)
+dp_prepare_mdata(struct df_parser *df, char *cp)
 {
 	switch (df->mtype) {
 	/* Numeric types */
@@ -636,6 +637,7 @@ dp_prepare_tdata(struct df_parser *df, char *cp)
 	case MT_LEFLOAT:
 	case MT_LEDOUBLE:
 	case MT_MELONG:
+		dp_prepare_mdata_numeric(df, cp);
 		break;
 	/* Date types */
 	case MT_DATE:
@@ -664,12 +666,20 @@ dp_prepare_tdata(struct df_parser *df, char *cp)
 		break;
 	case MT_SEARCH:
 		break;
+	case MT_DEFAULT:
+		break;
 	default:
 		/* should never happen */
 		warn("%s: unknown magic type: %u", __FILE__, df->mtype);
 		return (-1);
 	};
 
+	return (0);
+}
+
+int
+dp_prepare_mdata_numeric(struct df_parser *df, char *cp)
+{
 	return (0);
 }
 
