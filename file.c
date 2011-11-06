@@ -32,7 +32,7 @@
 
 void __dead		 usage(void);
 char			*xstrdup(char *);
-int			 str2mtype(const char *);
+int			 lookup_mtype(struct df_parser *, char *);
 struct df_file		*df_open(const char *);
 void			 df_state_init_files(int, char **);
 int			 df_check(struct df_file *);
@@ -43,7 +43,6 @@ struct df_match		*df_match_add(struct df_file *, enum match_class,
 int			 dp_prepare(struct df_parser *);
 int			 dp_prepare_moffset(struct df_parser *, const char *);
 int			 dp_prepare_mtype(struct df_parser *, char *);
-int			 dp_prepare_mdata(struct df_parser *, char *);
 int			 dp_prepare_mdata_numeric(struct df_parser *, char *);
 
 extern char	*malloc_options;
@@ -54,53 +53,57 @@ int		 df_debug;
 struct {
 	int		 mt;
 	const char	*str;
+	/* a function to call to parse the magic test specification */
+	int		(*md_parser)(struct df_parser *, char *);
+	/* a function to perform the test itself */
+	/* XXX int	(*md_test_handler)... */
 } mt_table[] = {
-	{ MT_UNKNOWN,	"unknown" },
-	{ MT_BYTE,	"byte" },
-	{ MT_UBYTE,	"ubyte" },
-	{ MT_SHORT,	"short" },
-	{ MT_LONG,	"long" },
-	{ MT_ULONG,	"ulong" },
-	{ MT_QUAD,	"quad" },
-	{ MT_FLOAT,	"float" },
-	{ MT_DOUBLE,	"double" },
-	{ MT_STRING,	"string" },
-	{ MT_PSTRING,	"pstring" },
-	{ MT_DATE,	"date" },
-	{ MT_QDATE,	"qdate" },
-	{ MT_LDATE,	"ldate" },
-	{ MT_QLDATE,	"qldate" },
-	{ MT_BESHORT,	"beshort" },
-	{ MT_UBESHORT,	"ubeshort" },
-	{ MT_BELONG,	"belong" },
-	{ MT_UBELONG,	"ubelong" },
-	{ MT_BEQUAD,	"bequad" },
-	{ MT_BEFLOAT,	"befloat" },
-	{ MT_BEDOUBLE,	"bedouble" },
-	{ MT_BEDATE,	"bedate" },
-	{ MT_BEQDATE,	"beqdate" },
-	{ MT_BELDATE,	"beldate" },
-	{ MT_BEQLDATE,	"beqldate" },
-	{ MT_BESTRING16,"bestring16" },
-	{ MT_LESHORT,	"leshort" },
-	{ MT_ULESHORT,	"uleshort" },
-	{ MT_LELONG,	"lelong" },
-	{ MT_ULELONG,	"ulelong" },
-	{ MT_LEQUAD,	"lequad" },
-	{ MT_LEFLOAT,	"lefloat" },
-	{ MT_LEDOUBLE,	"ledouble" },
-	{ MT_LEDATE,	"ledate" },
-	{ MT_LEQDATE,	"leqdate" },
-	{ MT_LELDATE,	"leldate" },
-	{ MT_LEQLDATE,	"leqldate" },
-	{ MT_LESTRING16,"lestring16" },
-	{ MT_MELONG,	"melong" },
-	{ MT_MEDATE,	"medate" },
-	{ MT_MELDATE,	"meldate" },
-	{ MT_REGEX,	"regex" },
-	{ MT_SEARCH,	"search" },
-	{ MT_DEFAULT,	"default" },
-	{ -1,		NULL },
+	{ MT_UNKNOWN,	"unknown",	0 },
+	{ MT_BYTE,	"byte",		dp_prepare_mdata_numeric },
+	{ MT_UBYTE,	"ubyte",	dp_prepare_mdata_numeric },
+	{ MT_SHORT,	"short",	dp_prepare_mdata_numeric },
+	{ MT_LONG,	"long",		dp_prepare_mdata_numeric },
+	{ MT_ULONG,	"ulong",	dp_prepare_mdata_numeric },
+	{ MT_QUAD,	"quad",		dp_prepare_mdata_numeric },
+	{ MT_FLOAT,	"float",	dp_prepare_mdata_numeric },
+	{ MT_DOUBLE,	"double",	dp_prepare_mdata_numeric },
+	{ MT_STRING,	"string",	0 },
+	{ MT_PSTRING,	"pstring",	0 },
+	{ MT_DATE,	"date",		0 },
+	{ MT_QDATE,	"qdate",	0 },
+	{ MT_LDATE,	"ldate",	0 },
+	{ MT_QLDATE,	"qldate",	0 },
+	{ MT_BESHORT,	"beshort",	dp_prepare_mdata_numeric },
+	{ MT_UBESHORT,	"ubeshort",	dp_prepare_mdata_numeric },
+	{ MT_BELONG,	"belong",	dp_prepare_mdata_numeric },
+	{ MT_UBELONG,	"ubelong",	dp_prepare_mdata_numeric },
+	{ MT_BEQUAD,	"bequad",	dp_prepare_mdata_numeric },
+	{ MT_BEFLOAT,	"befloat",	dp_prepare_mdata_numeric },
+	{ MT_BEDOUBLE,	"bedouble",	dp_prepare_mdata_numeric },
+	{ MT_BEDATE,	"bedate",	0 },
+	{ MT_BEQDATE,	"beqdate",	0 },
+	{ MT_BELDATE,	"beldate",	0 },
+	{ MT_BEQLDATE,	"beqldate",	0 },
+	{ MT_BESTRING16,"bestring16",	0 },
+	{ MT_LESHORT,	"leshort",	dp_prepare_mdata_numeric },
+	{ MT_ULESHORT,	"uleshort",	dp_prepare_mdata_numeric },
+	{ MT_LELONG,	"lelong",	dp_prepare_mdata_numeric },
+	{ MT_ULELONG,	"ulelong",	dp_prepare_mdata_numeric },
+	{ MT_LEQUAD,	"lequad",	dp_prepare_mdata_numeric },
+	{ MT_LEFLOAT,	"lefloat",	dp_prepare_mdata_numeric },
+	{ MT_LEDOUBLE,	"ledouble",	dp_prepare_mdata_numeric },
+	{ MT_LEDATE,	"ledate",	0 },
+	{ MT_LEQDATE,	"leqdate",	0 },
+	{ MT_LELDATE,	"leldate",	0 },
+	{ MT_LEQLDATE,	"leqldate",	0 },
+	{ MT_LESTRING16,"lestring16",	0 },
+	{ MT_MELONG,	"melong",	dp_prepare_mdata_numeric },
+	{ MT_MEDATE,	"medate",	dp_prepare_mdata_numeric },
+	{ MT_MELDATE,	"meldate",	dp_prepare_mdata_numeric },
+	{ MT_REGEX,	"regex",	0 },
+	{ MT_SEARCH,	"search",	0 },
+	{ MT_DEFAULT,	"default",	0 },
+	{ -1,		NULL,		0 },
 };
 
 void __dead
@@ -124,16 +127,22 @@ xstrdup(char *old)
 }
 
 int
-str2mtype(const char *str)
+lookup_mtype(struct df_parser *df, char *str)
 {
 	int i;
 
 	for (i = 0; mt_table[i].mt != -1; i++) {
-		if (strcmp(str, mt_table[i].str) == 0)
-			return (mt_table[i].mt);
+		if (strcmp(str, mt_table[i].str) == 0) {
+			df->mtype = mt_table[i].mt;
+			df->mdata_parser = mt_table[i].md_parser;
+			DPRINTF(3, "Found mtype: %s: %d %p", str, df->mtype, df->mdata_parser);
+			return (0);
+		}
 	}
 
-	return (MT_UNKNOWN);
+	df->mtype = MT_UNKNOWN;
+	DPRINTF(3, "Did not find mtype: %s", str);
+	return (-1);
 }
 /*
  * Opens all files and pushes into a TAILQ
@@ -533,7 +542,11 @@ dp_prepare(struct df_parser *dp)
 	if (dp_prepare_mtype(dp, dp->argv[1]) == -1)
 		return (-1);
 	/* Now test data */
-	if (dp_prepare_mdata(dp, dp->argv[2]) == -1)
+	if (dp->mdata_parser == NULL) {
+		warn("%s: no mdata parser for mtype: %d", __func__, dp->mtype);
+		return (-1);
+	}
+	if (dp->mdata_parser(dp, dp->argv[2]) == -1)
 		return (-1);
 	
 	return (0);
@@ -588,10 +601,9 @@ dp_prepare_mtype(struct df_parser *dp, char *cp)
 			/* TODO collect mod */
 		}
 	}
-	/* Convert the string to something meaningful */
-	if ((dp->mtype = str2mtype(cp)) == MT_UNKNOWN) {
-		warnx("dp_prepare: Uknown magic type %s at line %zd",
-		    cp, dp->lineno);
+	/* Convert the string to something meaningful and decide upon a test handler */
+	if ((lookup_mtype(dp, cp) == -1) || (dp->mtype == MT_UNKNOWN)) {
+		warnx("dp_prepare: Uknown magic type %s at line %zd", cp, dp->lineno);
 		return (-1);
 	}
 
@@ -603,82 +615,6 @@ badmod:
 badmask:
 	warn("dp_prepare: bad mask %s at line %zd", mask, dp->lineno);
 	return (-1);
-}
-
-/*
- * Parse the test data field.
- * Eg. '=0x0000', '\x01\x00\x6F\x36\x35', 'dex\n[0-9][0-9][0-9]\0', ...
- */
-int
-dp_prepare_mdata(struct df_parser *df, char *cp)
-{
-	int			ret = -1;
-
-	/*
-	 * this is quite long code XXX
-	 */
-	switch (df->mtype) {
-	/* Numeric types */
-	case MT_BYTE:
-	case MT_UBYTE:
-	case MT_SHORT:
-	case MT_LONG:
-	case MT_ULONG:
-	case MT_QUAD:
-	case MT_FLOAT:
-	case MT_DOUBLE:
-	case MT_BESHORT:
-	case MT_UBESHORT:
-	case MT_BELONG:
-	case MT_UBELONG:
-	case MT_BEQUAD:
-	case MT_BEFLOAT:
-	case MT_BEDOUBLE:
-	case MT_ULESHORT:
-	case MT_LESHORT:
-	case MT_LELONG:
-	case MT_ULELONG:
-	case MT_LEQUAD:
-	case MT_LEFLOAT:
-	case MT_LEDOUBLE:
-	case MT_MELONG:
-		ret = dp_prepare_mdata_numeric(df, cp);
-		break;
-	/* Date types */
-	case MT_DATE:
-	case MT_QDATE:
-	case MT_LDATE:
-	case MT_QLDATE:
-	case MT_BEDATE:
-	case MT_BEQDATE:
-	case MT_BELDATE:
-	case MT_BEQLDATE:
-	case MT_LEDATE:
-	case MT_LEQDATE:
-	case MT_LELDATE:
-	case MT_LEQLDATE:
-	case MT_MEDATE:
-	case MT_MELDATE:
-		break;
-	/* String types */
-	case MT_STRING:
-	case MT_PSTRING:
-	case MT_BESTRING16:
-	case MT_LESTRING16:
-		break;
-	/* Miscellaneous */
-	case MT_REGEX:
-		break;
-	case MT_SEARCH:
-		break;
-	case MT_DEFAULT:
-		break;
-	default:
-		/* should never happen */
-		warn("%s: unknown magic type: %u", __func__, df->mtype);
-	};
-
-	return (ret);
 }
 
 /*

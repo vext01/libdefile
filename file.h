@@ -126,6 +126,7 @@ struct df_parser {
 	u_long			 moffset;	/* Magic offset */
 	enum df_magic_test	 moffset_itype;	/* Indirect type if MF_INDIRECT */
 	enum df_magic_test	 mtype; 	/* Magic type */
+	int (*mdata_parser)(struct df_parser *, char *); /* magic test parser */
 	u_int64_t		 mmask;		/* Magic mask */
 	u_int32_t		 mflags;	/* Magic flags */
 #define MF_INDIRECT	0x01	/* Indirect offset (mo) */
