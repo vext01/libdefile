@@ -521,6 +521,8 @@ dp_prepare(struct df_parser *dp)
 	dp->mtype	  = MT_UNKNOWN;
 	dp->mmask	  = 0;
 	dp->d_quad	  = 0;	/* the longest type in the union */
+	dp->test_flags	  = 0;
+	dp->mdata_parser = 0;
 	/* First analyze level and offset */
 	cp = dp->argv[0];
 	if (*cp == '>') {
@@ -639,20 +641,28 @@ dp_prepare_mdata_numeric(struct df_parser *df, char *cp)
 		DPRINTF(2, "Found numerical speical prefix: %c", *cp);
 		switch (*cp) {
 		case '=':
+			df->test_flags &= DF_TEST_PFX_EQ;
 			break;
 		case '<':
+			df->test_flags &= DF_TEST_PFX_LT;
 			break;
 		case '>':
+			df->test_flags &= DF_TEST_PFX_GT;
 			break;
 		case '&':
+			df->test_flags &= DF_TEST_PFX_BSET;
 			break;
 		case '^':
+			df->test_flags &= DF_TEST_PFX_BCLR;
 			break;
 		case '~':
+			df->test_flags &= DF_TEST_PFX_BNEG;
 			break;
 		case 'x':
+			df->test_flags &= DF_TEST_PFX_X;
 			break;
 		case '!':
+			df->test_flags &= DF_TEST_PFX_NEG;
 			break;
 		default:
 			/* should not happen */
@@ -660,6 +670,8 @@ dp_prepare_mdata_numeric(struct df_parser *df, char *cp)
 		};
 		cp++;
 	}
+
+	/* XXX check for incompatible flag combos */
 
 	/* XXX store away test data in an "endian certain" mannaer */
 

@@ -183,7 +183,7 @@ struct df_parser {
 #define DF_TEST_PFX_BNEG		(1 << 5)
 #define DF_TEST_PFX_X			(1 << 6)
 #define DF_TEST_PFX_NEG			(1 << 7)
-	u_int32_t		  flags;
+	u_int32_t		  test_flags;
 };
 
 #ifdef DEBUG
