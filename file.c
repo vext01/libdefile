@@ -611,6 +611,64 @@ badmask:
 int
 dp_prepare_tdata(struct df_parser *df, char *cp)
 {
+	switch (df->mtype) {
+	/* Numeric types */
+	case MT_BYTE:
+	case MT_UBYTE:
+	case MT_SHORT:
+	case MT_LONG:
+	case MT_ULONG:
+	case MT_QUAD:
+	case MT_FLOAT:
+	case MT_DOUBLE:
+	case MT_BESHORT:
+	case MT_UBESHORT:
+	case MT_BELONG:
+	case MT_UBELONG:
+	case MT_BEQUAD:
+	case MT_BEFLOAT:
+	case MT_BEDOUBLE:
+	case MT_ULESHORT:
+	case MT_LESHORT:
+	case MT_LELONG:
+	case MT_ULELONG:
+	case MT_LEQUAD:
+	case MT_LEFLOAT:
+	case MT_LEDOUBLE:
+	case MT_MELONG:
+		break;
+	/* Date types */
+	case MT_DATE:
+	case MT_QDATE:
+	case MT_LDATE:
+	case MT_QLDATE:
+	case MT_BEDATE:
+	case MT_BEQDATE:
+	case MT_BELDATE:
+	case MT_BEQLDATE:
+	case MT_LEDATE:
+	case MT_LEQDATE:
+	case MT_LELDATE:
+	case MT_LEQLDATE:
+	case MT_MEDATE:
+	case MT_MELDATE:
+		break;
+	/* String types */
+	case MT_STRING:
+	case MT_PSTRING:
+	case MT_BESTRING16:
+	case MT_LESTRING16:
+		break;
+	/* Miscellaneous */
+	case MT_REGEX:
+		break;
+	case MT_SEARCH:
+		break;
+	default:
+		/* should never happen */
+		warn("%s: unknown magic type: %u", __FILE__, df->mtype);
+		return (-1);
+	};
 
 	return (0);
 }
