@@ -635,7 +635,7 @@ dp_prepare_mdata_numeric(struct df_parser *df, char *cp)
 	DPRINTF(2, "Parse numerical magic data: %s", cp);
 
 	/* continue until we have parsed all special prefixes */
-	while (strcspn(cp, special)) {
+	while (strspn(cp, special)) {
 		DPRINTF(2, "Found numerical speical prefix: %c", *cp);
 		switch (*cp) {
 		case '=':
